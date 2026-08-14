@@ -3,7 +3,7 @@ const Event = require('./models/Event');
 
 require('dotenv').config();
 
-mongoose.connect('mongodb://localhost:27017/event_management', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })

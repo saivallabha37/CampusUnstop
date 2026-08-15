@@ -64,10 +64,13 @@ const createEvent = async (req, res) => {
 
     await event.save();
 
+    // Get the event creator
+    const organizer = await User.findById(organizerId);
+
     // Get all registered users
     const users = await User.find({}, 'name email');
 
-    // Send notification to all users
+    // Send notification to all users + event creator
     await sendNotification({
       type: 'EVENT_CREATED',
 
@@ -82,10 +85,20 @@ const createEvent = async (req, res) => {
         capacity: event.capacity
       },
 
+      // All users who should receive the new-event notification
       recipients: users.map(user => ({
         name: user.name,
         email: user.email
-      }))
+      })),
+
+      // The person who created the event
+      organizer: organizer
+        ? {
+            id: organizer._id,
+            name: organizer.name,
+            email: organizer.email
+          }
+        : null
     });
 
     res.status(201).json(event);

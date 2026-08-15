@@ -68,7 +68,10 @@ const createEvent = async (req, res) => {
     const organizer = await User.findById(organizerId);
 
     // Get all registered users
-    const users = await User.find({}, 'name email');
+    const users = await User.find(
+    { _id: { $ne: organizerId } },
+      'name email'
+    );
 
     // Send notification to all users + event creator
     await sendNotification({

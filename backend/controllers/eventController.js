@@ -51,6 +51,47 @@ const createEvent = async (req, res) => {
     });
 
     await event.save();
+    
+    // Trigger n8n webhook after event is successfully created
+    const n8nWebhookUrl = process.env.N8N_EVENT_WEBHOOK_URL;
+    
+    if (n8nWebhookUrl) {
+      try {
+        const webhookResponse = await fetch(n8nWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            eventId: event._id,
+            title: event.title,
+            description: event.description,
+            date: event.date,
+            location: event.location,
+            capacity: event.capacity,
+            category: event.category,
+            registrationDeadline: event.registrationDeadline,
+            imageUrl: event.imageUrl,
+            tags: event.tags,
+            organizerId: event.organizerId
+          })
+        });
+    
+        if (!webhookResponse.ok) {
+          console.error(
+            `n8n webhook failed: ${webhookResponse.status} ${webhookResponse.statusText}`
+          );
+        } else {
+          console.log('n8n event-created webhook triggered successfully');
+        }
+      } catch (webhookError) {
+        console.error(
+          'Failed to trigger n8n webhook:',
+          webhookError.message
+        );
+      }
+    }
+    
     res.status(201).json(event);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

@@ -1,23 +1,35 @@
 const Event = require('../models/Event');
+const User = require('../models/User');
+const { sendNotification } = require('../services/notificationService');
 
 const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find();
     res.json(events);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
 const getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
+
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({
+        message: 'Event not found'
+      });
     }
+
     res.json(event);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
@@ -51,83 +63,100 @@ const createEvent = async (req, res) => {
     });
 
     await event.save();
-    
-    // Trigger n8n webhook after event is successfully created
-    const n8nWebhookUrl = process.env.N8N_EVENT_WEBHOOK_URL;
-    
-    if (n8nWebhookUrl) {
-      try {
-        const webhookResponse = await fetch(n8nWebhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            eventId: event._id,
-            title: event.title,
-            description: event.description,
-            date: event.date,
-            location: event.location,
-            capacity: event.capacity,
-            category: event.category,
-            registrationDeadline: event.registrationDeadline,
-            imageUrl: event.imageUrl,
-            tags: event.tags,
-            organizerId: event.organizerId
-          })
-        });
-    
-        if (!webhookResponse.ok) {
-          console.error(
-            `n8n webhook failed: ${webhookResponse.status} ${webhookResponse.statusText}`
-          );
-        } else {
-          console.log('n8n event-created webhook triggered successfully');
-        }
-      } catch (webhookError) {
-        console.error(
-          'Failed to trigger n8n webhook:',
-          webhookError.message
-        );
-      }
-    }
-    
+
+    // Get all registered users
+    const users = await User.find({}, 'name email');
+
+    // Send notification to all users
+    await sendNotification({
+      type: 'EVENT_CREATED',
+
+      event: {
+        id: event._id,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        location: event.location,
+        category: event.category,
+        registrationDeadline: event.registrationDeadline,
+        capacity: event.capacity
+      },
+
+      recipients: users.map(user => ({
+        name: user.name,
+        email: user.email
+      }))
+    });
+
     res.status(201).json(event);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Create event error:', error);
+
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
 const getEventsByOrganizer = async (req, res) => {
   try {
-    const events = await Event.find({ organizerId: req.params.organizerId });
+    const events = await Event.find({
+      organizerId: req.params.organizerId
+    });
+
     res.json(events);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
 const searchEvents = async (req, res) => {
   try {
     const { q, category } = req.query;
+
     let query = {};
 
     if (q) {
       query.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { tags: { $in: [new RegExp(q, 'i')] } }
+        {
+          title: {
+            $regex: q,
+            $options: 'i'
+          }
+        },
+        {
+          description: {
+            $regex: q,
+            $options: 'i'
+          }
+        },
+        {
+          tags: {
+            $in: [new RegExp(q, 'i')]
+          }
+        }
       ];
     }
 
     if (category) {
-      query.category = { $regex: category, $options: 'i' };
+      query.category = {
+        $regex: category,
+        $options: 'i'
+      };
     }
 
     const events = await Event.find(query);
+
     res.json(events);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
@@ -136,30 +165,47 @@ const updateEvent = async (req, res) => {
     const event = await Event.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true
+      }
     );
 
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({
+        message: 'Event not found'
+      });
     }
 
     res.json(event);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
 const deleteEvent = async (req, res) => {
   try {
-    const event = await Event.findByIdAndDelete(req.params.id);
+    const event = await Event.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({
+        message: 'Event not found'
+      });
     }
 
-    res.json({ message: 'Event deleted successfully' });
+    res.json({
+      message: 'Event deleted successfully'
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 

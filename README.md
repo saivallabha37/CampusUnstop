@@ -9,6 +9,14 @@
 
 ---
 
+## ⭐ Like CampusUnstop?
+
+If you find this project useful or interesting, consider giving the repository a **star** ⭐
+
+It helps support the project and motivates me to keep improving it. 🚀
+
+---
+
 ## ✨ Features
 
 ### 👤 Authentication & Users

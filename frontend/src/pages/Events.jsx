@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
@@ -14,15 +14,7 @@ const Events = ({ user }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
-    filterEvents();
-  }, [events, activeTab, searchTerm]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const data = await api.getEvents();
       setEvents(data);
@@ -31,9 +23,9 @@ const Events = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterEvents = () => {
+  const filterEvents = useCallback(() => {
     let filtered = events;
 
     // Filter by status
@@ -59,7 +51,15 @@ const Events = ({ user }) => {
     }
 
     setFilteredEvents(filtered);
-  };
+  }, [events, activeTab, searchTerm]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    filterEvents();
+  }, [filterEvents]);
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);

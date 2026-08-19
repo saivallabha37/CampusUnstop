@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
@@ -25,14 +25,7 @@ const Profile = ({ user }) => {
   const [filter, setFilter] = useState('all');
   const [editingEvent, setEditingEvent] = useState(null);
 
-  useEffect(() => {
-    fetchUserStats();
-    if (activeTab === 'events') {
-      fetchMyEvents();
-    }
-  }, [activeTab]);
-
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     try {
       // Get events created by user
       const createdEvents = await api.getEventsByOrganizer(user.id);
@@ -50,9 +43,9 @@ const Profile = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
 
-  const fetchMyEvents = async () => {
+  const fetchMyEvents = useCallback(async () => {
     setEventsLoading(true);
     try {
       const events = await api.getEventsByOrganizer(user.id);
@@ -62,7 +55,14 @@ const Profile = ({ user }) => {
     } finally {
       setEventsLoading(false);
     }
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchUserStats();
+    if (activeTab === 'events') {
+      fetchMyEvents();
+    }
+  }, [activeTab, fetchMyEvents, fetchUserStats]);
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
+import { useDialog } from '../contexts/DialogContext';
 
 const Profile = ({ user }) => {
+  const { showDialog, showConfirmation } = useDialog();
   const [activeTab, setActiveTab] = useState('profile');
   const [stats, setStats] = useState({
     eventsParticipated: 0,
@@ -74,11 +76,19 @@ const Profile = ({ user }) => {
     try {
       // In a real app, you'd call an API to update user profile
       // For now, just update local state
-      alert('Profile update functionality would be implemented here');
+      await showDialog({
+        type: 'information',
+        title: 'Profile Update',
+        message: 'Profile update functionality would be implemented here'
+      });
       setEditMode(false);
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile');
+      await showDialog({
+        type: 'error',
+        title: 'Profile Update Failed',
+        message: 'Failed to update profile'
+      });
     }
   };
 
@@ -94,7 +104,14 @@ const Profile = ({ user }) => {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+    const confirmed = await showConfirmation({
+      title: 'Delete Event',
+      message: 'Are you sure you want to delete this event? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -104,7 +121,11 @@ const Profile = ({ user }) => {
       fetchUserStats(); // Update stats
     } catch (error) {
       console.error('Error deleting event:', error);
-      alert('Failed to delete event');
+      await showDialog({
+        type: 'error',
+        title: 'Delete Failed',
+        message: 'Failed to delete event'
+      });
     }
   };
 
@@ -120,10 +141,18 @@ const Profile = ({ user }) => {
       await api.updateEvent(editingEvent._id, updatedData);
       setEditingEvent(null);
       fetchMyEvents();
-      alert('Event updated successfully!');
+      await showDialog({
+        type: 'success',
+        title: 'Event Updated',
+        message: 'Event updated successfully!'
+      });
     } catch (error) {
       console.error('Error updating event:', error);
-      alert('Failed to update event');
+      await showDialog({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update event'
+      });
     }
   };
 

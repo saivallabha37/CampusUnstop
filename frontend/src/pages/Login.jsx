@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useDialog } from '../contexts/DialogContext';
 
 const Login = ({ onLogin, onSwitchToRegister }) => {
+  const { showDialog } = useDialog();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,11 +24,19 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
         localStorage.setItem('user', JSON.stringify(result.user));
         onLogin(result.user);
       } else {
-        alert(result.message || 'Login failed');
+        await showDialog({
+          type: 'error',
+          title: 'Login Failed',
+          message: result.message || 'Login failed'
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Login failed. Please try again.');
+      await showDialog({
+        type: 'error',
+        title: 'Login Failed',
+        message: 'Login failed. Please try again.'
+      });
     } finally {
       setLoading(false);
     }

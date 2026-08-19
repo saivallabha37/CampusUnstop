@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
+import { useDialog } from '../contexts/DialogContext';
 
 const CreateEvent = ({ user }) => {
+  const { showDialog } = useDialog();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: '',
@@ -54,11 +56,19 @@ const CreateEvent = ({ user }) => {
       };
 
       await api.createEvent(eventData);
-      alert('Event created successfully!');
+      await showDialog({
+        type: 'success',
+        title: 'Event Created',
+        message: 'Event created successfully!'
+      });
       navigate('/my-events');
     } catch (error) {
       console.error('Error creating event:', error);
-      alert('Failed to create event. Please try again.');
+      await showDialog({
+        type: 'error',
+        title: 'Event Creation Failed',
+        message: 'Failed to create event. Please try again.'
+      });
     } finally {
       setLoading(false);
     }

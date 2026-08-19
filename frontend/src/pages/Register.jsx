@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useDialog } from '../contexts/DialogContext';
 
 const Register = ({ onRegister, onSwitchToLogin }) => {
+  const { showDialog } = useDialog();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,7 +21,11 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      await showDialog({
+        type: 'warning',
+        title: 'Password Mismatch',
+        message: 'Passwords do not match'
+      });
       return;
     }
 
@@ -34,11 +40,19 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
         localStorage.setItem('user', JSON.stringify(result.user));
         onRegister(result.user);
       } else {
-        alert(result.message || 'Registration failed');
+        await showDialog({
+          type: 'error',
+          title: 'Registration Failed',
+          message: result.message || 'Registration failed'
+        });
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+      await showDialog({
+        type: 'error',
+        title: 'Registration Failed',
+        message: 'Registration failed. Please try again.'
+      });
     } finally {
       setLoading(false);
     }

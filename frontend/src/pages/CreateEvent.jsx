@@ -61,7 +61,7 @@ const CreateEvent = ({ user }) => {
         title: 'Event Created',
         message: 'Event created successfully!'
       });
-      navigate('/my-events');
+      window.location.href = '/events';
     } catch (error) {
       console.error('Error creating event:', error);
       await showDialog({

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
+import { useDialog } from '../contexts/DialogContext';
 
 const Landing = ({ user, onLogout, onLoginClick }) => {
+  const { showDialog, showConfirmation } = useDialog();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -48,14 +50,23 @@ const Landing = ({ user, onLogout, onLoginClick }) => {
   const handleSubmitRegistration = async (e) => {
     e.preventDefault();
 
-    const confirmed = window.confirm(`Are you sure you want to register for "${selectedEvent.title}"?`);
+    const confirmed = await showConfirmation({
+      title: 'Confirm Registration',
+      message: `Are you sure you want to register for "${selectedEvent.title}"?`,
+      confirmText: 'Register',
+      cancelText: 'Cancel'
+    });
     if (!confirmed) return;
 
     try {
       const result = await api.registerForEvent(user.id, selectedEvent._id);
 
       if (result.message === 'Registration successful') {
-        alert('Registration successful! You will receive a confirmation email shortly.');
+        await showDialog({
+          type: 'success',
+          title: 'Registration Successful',
+          message: 'Registration successful! You will receive a confirmation email shortly.'
+        });
         setShowRegisterForm(false);
         setRegistrationData({
           name: '',
@@ -67,11 +78,24 @@ const Landing = ({ user, onLogout, onLoginClick }) => {
         });
         fetchEvents(); // Refresh events to show updated attendee count
       } else {
-        alert(result.message);
+        const message = result.message || 'Unable to process registration.';
+        const lowerMessage = message.toLowerCase();
+        const isDuplicate = lowerMessage.includes('already') || lowerMessage.includes('duplicate');
+        const isError = lowerMessage.includes('fail') || lowerMessage.includes('error');
+
+        await showDialog({
+          type: isDuplicate ? 'warning' : (isError ? 'error' : 'information'),
+          title: isDuplicate ? 'Already Registered' : 'Registration Update',
+          message
+        });
       }
     } catch (error) {
       console.error('Error registering:', error);
-      alert('Registration failed. Please try again.');
+      await showDialog({
+        type: 'error',
+        title: 'Registration Failed',
+        message: 'Registration failed. Please try again.'
+      });
     }
   };
 
@@ -96,10 +120,18 @@ const Landing = ({ user, onLogout, onLoginClick }) => {
         registrationDeadline: ''
       });
       fetchEvents(); // Refresh events list
-      alert('Event created successfully!');
+      await showDialog({
+        type: 'success',
+        title: 'Event Created',
+        message: 'Event created successfully!'
+      });
     } catch (error) {
       console.error('Error creating event:', error);
-      alert('Failed to create event. Please try again.');
+      await showDialog({
+        type: 'error',
+        title: 'Event Creation Failed',
+        message: 'Failed to create event. Please try again.'
+      });
     }
   };
 

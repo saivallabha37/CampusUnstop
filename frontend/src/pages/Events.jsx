@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
+import { useDialog } from '../contexts/DialogContext';
 
 const Events = ({ user }) => {
+  const { showDialog, showConfirmation } = useDialog();
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,15 +14,7 @@ const Events = ({ user }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
-    filterEvents();
-  }, [events, activeTab, searchTerm]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const data = await api.getEvents();
       setEvents(data);
@@ -29,9 +23,9 @@ const Events = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterEvents = () => {
+  const filterEvents = useCallback(() => {
     let filtered = events;
 
     // Filter by status
@@ -57,7 +51,15 @@ const Events = ({ user }) => {
     }
 
     setFilteredEvents(filtered);
-  };
+  }, [events, activeTab, searchTerm]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    filterEvents();
+  }, [filterEvents]);
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);
@@ -66,24 +68,50 @@ const Events = ({ user }) => {
 
   const handleRegister = async (event) => {
     if (!user) {
-      alert('Please login to register for events');
+      await showDialog({
+        type: 'information',
+        title: 'Login Required',
+        message: 'Please login to register for events'
+      });
       return;
     }
 
-    const confirmed = window.confirm(`Are you sure you want to register for "${event.title}"?`);
+    const confirmed = await showConfirmation({
+      title: 'Confirm Registration',
+      message: `Are you sure you want to register for "${event.title}"?`,
+      confirmText: 'Register',
+      cancelText: 'Cancel'
+    });
     if (!confirmed) return;
 
     try {
       const result = await api.registerForEvent(user.id, event._id);
       if (result.message === 'Registration successful') {
-        alert('Registration successful! You will receive a confirmation email shortly.');
+        await showDialog({
+          type: 'success',
+          title: 'Registration Successful',
+          message: 'Registration successful! You will receive a confirmation email shortly.'
+        });
         fetchEvents(); // Refresh to update attendee count
       } else {
-        alert(result.message);
+        const message = result.message || 'Unable to process registration.';
+        const lowerMessage = message.toLowerCase();
+        const isDuplicate = lowerMessage.includes('already') || lowerMessage.includes('duplicate');
+        const isError = lowerMessage.includes('fail') || lowerMessage.includes('error');
+
+        await showDialog({
+          type: isDuplicate ? 'warning' : (isError ? 'error' : 'information'),
+          title: isDuplicate ? 'Already Registered' : 'Registration Update',
+          message
+        });
       }
     } catch (error) {
       console.error('Error registering:', error);
-      alert('Registration failed. Please try again.');
+      await showDialog({
+        type: 'error',
+        title: 'Registration Failed',
+        message: 'Registration failed. Please try again.'
+      });
     }
   };
 

@@ -137,6 +137,52 @@ const CreateEvent = ({ user }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Eligibility *
+                </label>
+              
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {['1st Year', '2nd Year', '3rd Year', '4th Year'].map((year) => (
+                    <label
+                      key={year}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        formData.eligibleYears.includes(year)
+                          ? 'bg-purple-600/20 border-purple-500 text-white'
+                          : 'bg-neutral-800 border-neutral-700 text-gray-400 hover:border-purple-500/50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.eligibleYears.includes(year)}
+                        onChange={(e) => {
+                          const selectedYear = e.target.value;
+              
+                          setFormData(prev => ({
+                            ...prev,
+                            eligibleYears: e.target.checked
+                              ? [...prev.eligibleYears, selectedYear]
+                              : prev.eligibleYears.filter(
+                                  year => year !== selectedYear
+                                )
+                          }));
+                        }}
+                        value={year}
+                        className="accent-purple-600"
+                      />
+              
+                      <span>{year}</span>
+                    </label>
+                  ))}
+                </div>
+              
+                {formData.eligibleYears.length === 0 && (
+                  <p className="text-sm text-red-400 mt-2">
+                    Please select at least one eligible year.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Description *
                 </label>
                 <textarea

@@ -32,6 +32,11 @@ const eventSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  eligibleYears: {
+    type: [String],
+    enum: ['1st Year', '2nd Year', '3rd Year', '4th Year'],
+    default: ['1st Year', '2nd Year', '3rd Year', '4th Year']
+  },
   registrationDeadline: {
     type: Date,
     required: true

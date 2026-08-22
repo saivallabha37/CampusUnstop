@@ -17,7 +17,8 @@ const CreateEvent = ({ user }) => {
     category: '',
     registrationDeadline: '',
     imageUrl: '',
-    tags: ''
+    tags: '',
+    eligibleYears: []
   });
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(false);

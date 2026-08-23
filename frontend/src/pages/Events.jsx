@@ -260,9 +260,27 @@ const Events = ({ user }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div><strong>Date:</strong> {new Date(selectedEvent.date).toLocaleDateString()}</div>
                 <div><strong>Time:</strong> {new Date(selectedEvent.date).toLocaleTimeString()}</div>
-                <div><strong>Location:</strong> {selectedEvent.location || 'TBD'}</div>
-                <div><strong>Category:</strong> {selectedEvent.category}</div>
-                <div><strong>Bookings:</strong> {selectedEvent.attendees}</div>
+                <div>
+                  <strong>Location:</strong>{' '}
+                  {selectedEvent.location || 'TBD'}
+                </div>
+                
+                <div>
+                  <strong>Category:</strong>{' '}
+                  {selectedEvent.category}
+                </div>
+                
+                <div>
+                  <strong>Eligibility:</strong>{' '}
+                  {selectedEvent.eligibleYears?.length > 0
+                    ? selectedEvent.eligibleYears.join(', ')
+                    : 'All Years'}
+                </div>
+                
+                <div>
+                  <strong>Bookings:</strong>{' '}
+                  {selectedEvent.attendees}
+                </div>
                 <div><strong>Free Slots:</strong> {selectedEvent.capacity - selectedEvent.attendees}</div>
                 <div><strong>Reserved Slots:</strong> {selectedEvent.attendees}</div>
                 <div><strong>Capacity:</strong> {selectedEvent.capacity}</div>

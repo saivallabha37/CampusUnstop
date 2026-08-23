@@ -9,9 +9,12 @@ const Events = ({ user }) => {
 
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
+  const [userBookings, setUserBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState('upcoming');
   const [searchTerm, setSearchTerm] = useState('');
+
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -22,29 +25,164 @@ const Events = ({ user }) => {
   const fetchEvents = useCallback(async () => {
     try {
       const data = await api.getEvents();
+
       setEvents(data);
+
     } catch (error) {
-      console.error('Error fetching events:', error);
+
+      console.error(
+        'Error fetching events:',
+        error
+      );
+
     } finally {
+
       setLoading(false);
+
     }
   }, []);
+
+
+  // --------------------------------------------------
+  // Fetch user's registrations
+  // --------------------------------------------------
+
+  const fetchUserBookings = useCallback(async () => {
+
+    if (!user?.id) {
+      setUserBookings([]);
+      return;
+    }
+
+    try {
+
+      const bookings =
+        await api.getUserBookings(user.id);
+
+      setUserBookings(
+        Array.isArray(bookings)
+          ? bookings
+          : []
+      );
+
+    } catch (error) {
+
+      console.error(
+        'Error fetching user bookings:',
+        error
+      );
+
+      setUserBookings([]);
+
+    }
+
+  }, [user]);
+
+
+  // --------------------------------------------------
+  // Initial loading
+  // --------------------------------------------------
+
+  useEffect(() => {
+
+    fetchEvents();
+
+    fetchUserBookings();
+
+  }, [
+    fetchEvents,
+    fetchUserBookings
+  ]);
+
+
+  // --------------------------------------------------
+  // Check whether user registered for event
+  // --------------------------------------------------
+
+  const isUserRegistered = useCallback(
+    (eventId) => {
+
+      return userBookings.some((booking) => {
+
+        const bookingEventId =
+          typeof booking.eventId === 'object'
+            ? booking.eventId?._id
+            : booking.eventId;
+
+        return (
+          String(bookingEventId) ===
+          String(eventId)
+        );
+
+      });
+
+    },
+    [userBookings]
+  );
+
+
+  // --------------------------------------------------
+  // Eligibility check
+  // --------------------------------------------------
+
+  const isUserEligible = useCallback(
+    (event) => {
+
+      if (!user) {
+        return false;
+      }
+
+      const eligibleYears =
+        Array.isArray(event.eligibleYears)
+          ? event.eligibleYears
+          : [];
+
+      // Empty eligibility = open to everyone
+      if (eligibleYears.length === 0) {
+        return true;
+      }
+
+      return eligibleYears.includes(
+        user.year
+      );
+
+    },
+    [user]
+  );
+
 
   // --------------------------------------------------
   // Filter events
   // --------------------------------------------------
 
   const filterEvents = useCallback(() => {
+
     let filtered = events;
 
     const now = new Date();
 
-    // Filter by status
-    if (activeTab === 'ongoing') {
-      filtered = events.filter(event => {
-        const eventDate = new Date(event.date);
 
-        const endDate = new Date(eventDate);
+    // Upcoming
+    if (activeTab === 'upcoming') {
+
+      filtered = events.filter(
+        event =>
+          new Date(event.date) > now
+      );
+
+    }
+
+
+    // Ongoing
+    else if (activeTab === 'ongoing') {
+
+      filtered = events.filter(event => {
+
+        const eventDate =
+          new Date(event.date);
+
+        const endDate =
+          new Date(eventDate);
 
         endDate.setHours(
           23,
@@ -53,196 +191,300 @@ const Events = ({ user }) => {
           999
         );
 
-        return eventDate <= now && endDate >= now;
+        return (
+          eventDate <= now &&
+          endDate >= now
+        );
+
       });
 
-    } else if (activeTab === 'upcoming') {
-      filtered = events.filter(
-        event => new Date(event.date) > now
-      );
     }
 
-    // Filter by search
+
+    // Search
     if (searchTerm) {
-      filtered = filtered.filter(event =>
-        event.title
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
 
-        event.description
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
+      filtered = filtered.filter(event => {
 
-        event.category
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
-      );
+        const title =
+          event.title?.toLowerCase() || '';
+
+        const description =
+          event.description?.toLowerCase() || '';
+
+        const category =
+          event.category?.toLowerCase() || '';
+
+        const search =
+          searchTerm.toLowerCase();
+
+        return (
+          title.includes(search) ||
+          description.includes(search) ||
+          category.includes(search)
+        );
+
+      });
+
     }
 
     setFilteredEvents(filtered);
-  }, [events, activeTab, searchTerm]);
 
-  // --------------------------------------------------
-  // Load events
-  // --------------------------------------------------
+  }, [
+    events,
+    activeTab,
+    searchTerm
+  ]);
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
 
   useEffect(() => {
+
     filterEvents();
+
   }, [filterEvents]);
+
 
   // --------------------------------------------------
   // Event details
   // --------------------------------------------------
 
   const handleEventClick = (event) => {
+
     setSelectedEvent(event);
     setShowModal(true);
+
   };
 
-  // --------------------------------------------------
-  // Eligibility check
-  // --------------------------------------------------
-
-  const isUserEligible = (event) => {
-
-    // If user is not logged in
-    // we don't need to check eligibility yet.
-    if (!user) {
-      return false;
-    }
-
-    /*
-      If eligibleYears is missing or empty,
-      the event is open to everyone.
-    */
-
-    const eligibleYears = Array.isArray(event.eligibleYears)
-      ? event.eligibleYears
-      : [];
-
-    if (eligibleYears.length === 0) {
-      return true;
-    }
-
-    return eligibleYears.includes(user.year);
-  };
 
   // --------------------------------------------------
-  // Registration
+  // Register
   // --------------------------------------------------
 
   const handleRegister = async (event) => {
 
     if (!user) {
+
       await showDialog({
         type: 'information',
         title: 'Login Required',
-        message: 'Please login to register for events'
+        message:
+          'Please login to register for events.'
       });
 
       return;
+
     }
 
-    // ------------------------------------------------
-    // Frontend eligibility protection
-    // ------------------------------------------------
+
+    // ----------------------------------------------
+    // Eligibility check
+    // ----------------------------------------------
 
     if (!isUserEligible(event)) {
 
       await showDialog({
         type: 'warning',
         title: 'Not Eligible',
-        message: `This event is only open to ${event.eligibleYears.join(', ')}.`
+        message:
+          `This event is only open to ${
+            event.eligibleYears.join(', ')
+          }.`
       });
 
       return;
+
     }
 
-    // ------------------------------------------------
-    // Confirmation
-    // ------------------------------------------------
 
-    const confirmed = await showConfirmation({
-      title: 'Confirm Registration',
-      message: `Are you sure you want to register for "${event.title}"?`,
-      confirmText: 'Register',
-      cancelText: 'Cancel'
-    });
+    // ----------------------------------------------
+    // Duplicate protection
+    // ----------------------------------------------
+
+    if (
+      isUserRegistered(event._id)
+    ) {
+
+      await showDialog({
+        type: 'warning',
+        title: 'Already Registered',
+        message:
+          'You are already registered for this event.'
+      });
+
+      return;
+
+    }
+
+
+    // ----------------------------------------------
+    // Confirm registration
+    // ----------------------------------------------
+
+    const confirmed =
+      await showConfirmation({
+
+        title:
+          'Confirm Registration',
+
+        message:
+          `Are you sure you want to register for "${event.title}"?`,
+
+        confirmText:
+          'Register',
+
+        cancelText:
+          'Cancel'
+
+      });
+
 
     if (!confirmed) {
       return;
     }
 
+
     try {
 
-      const result = await api.registerForEvent(
-        user.id,
-        event._id
-      );
+      const result =
+        await api.registerForEvent(
+          user.id,
+          event._id
+        );
 
-      // ------------------------------------------------
+
+      // --------------------------------------------
       // Successful registration
-      // ------------------------------------------------
+      // --------------------------------------------
 
-      if (result.message === 'Registration successful') {
+      if (
+        result?.code === 'REGISTERED' ||
+        result?.message ===
+          'Registration successful'
+      ) {
+
+        /*
+         * IMPORTANT:
+         *
+         * We do NOT show a success dialog.
+         *
+         * Instead, we immediately add the new
+         * registration to userBookings.
+         *
+         * This causes the button to become:
+         *
+         *        ✓ Registered
+         *
+         * and disabled.
+         */
+
+        setUserBookings(prev => [
+          ...prev,
+
+          {
+            _id:
+              result.booking?._id,
+
+            userId:
+              user.id,
+
+            eventId:
+              event._id
+          }
+
+        ]);
+
+
+        // Update attendee count locally
+
+        setEvents(prevEvents =>
+          prevEvents.map(item =>
+            item._id === event._id
+              ? {
+                  ...item,
+                  attendees:
+                    item.attendees + 1
+                }
+              : item
+          )
+        );
+
+
+        return;
+
+      }
+
+
+      // --------------------------------------------
+      // Already registered
+      // --------------------------------------------
+
+      if (
+        result?.code ===
+        'ALREADY_REGISTERED'
+      ) {
 
         await showDialog({
-          type: 'success',
-          title: 'Registration Successful',
-          message: 'Registration successful! You will receive a confirmation email shortly.'
-        });
-
-        // Refresh events so attendee count updates
-        fetchEvents();
-
-      } else {
-
-        // ------------------------------------------------
-        // Backend error
-        // ------------------------------------------------
-
-        const message =
-          result.message ||
-          'Unable to process registration.';
-
-        const lowerMessage =
-          message.toLowerCase();
-
-        const isDuplicate =
-          lowerMessage.includes('already') ||
-          lowerMessage.includes('duplicate');
-
-        const isNotEligible =
-          lowerMessage.includes('not eligible');
-
-        const isError =
-          lowerMessage.includes('fail') ||
-          lowerMessage.includes('error');
-
-        await showDialog({
-          type:
-            isNotEligible
-              ? 'warning'
-              : isDuplicate
-                ? 'warning'
-                : isError
-                  ? 'error'
-                  : 'information',
+          type: 'warning',
 
           title:
-            isNotEligible
-              ? 'Not Eligible'
-              : isDuplicate
-                ? 'Already Registered'
-                : 'Registration Update',
+            'Already Registered',
 
-          message
+          message:
+            'You are already registered for this event.'
         });
+
+        /*
+         * Refresh bookings because the backend
+         * says the user is already registered.
+         */
+
+        await fetchUserBookings();
+
+        return;
+
       }
+
+
+      // --------------------------------------------
+      // Not eligible
+      // --------------------------------------------
+
+      if (
+        result?.code ===
+        'NOT_ELIGIBLE'
+      ) {
+
+        await showDialog({
+          type: 'warning',
+
+          title:
+            'Not Eligible',
+
+          message:
+            result.message
+        });
+
+        return;
+
+      }
+
+
+      // --------------------------------------------
+      // Other backend response
+      // --------------------------------------------
+
+      await showDialog({
+
+        type: 'information',
+
+        title:
+          'Registration Update',
+
+        message:
+          result?.message ||
+          'Unable to process registration.'
+
+      });
 
     } catch (error) {
 
@@ -251,47 +493,131 @@ const Events = ({ user }) => {
         error
       );
 
+
+      /*
+       * api.js may throw for HTTP 409.
+       *
+       * If your API helper exposes the backend
+       * response, handle ALREADY_REGISTERED here.
+       */
+
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Registration failed. Please try again.';
+
+
+      if (
+        message
+          .toLowerCase()
+          .includes('already registered')
+      ) {
+
+        await showDialog({
+
+          type:
+            'warning',
+
+          title:
+            'Already Registered',
+
+          message:
+            'You are already registered for this event.'
+
+        });
+
+
+        await fetchUserBookings();
+
+        return;
+
+      }
+
+
+      if (
+        message
+          .toLowerCase()
+          .includes('not eligible')
+      ) {
+
+        await showDialog({
+
+          type:
+            'warning',
+
+          title:
+            'Not Eligible',
+
+          message
+
+        });
+
+        return;
+
+      }
+
+
       await showDialog({
-        type: 'error',
-        title: 'Registration Failed',
-        message: 'Registration failed. Please try again.'
+
+        type:
+          'error',
+
+        title:
+          'Registration Failed',
+
+        message:
+          'Registration failed. Please try again.'
+
       });
+
     }
+
   };
+
 
   // --------------------------------------------------
   // Tabs
   // --------------------------------------------------
 
   const tabs = [
+
     {
       id: 'upcoming',
       label: 'Upcoming Events'
     },
+
     {
       id: 'ongoing',
       label: 'Ongoing Events'
     },
+
     {
       id: 'all',
       label: 'All Events'
     }
+
   ];
+
 
   // --------------------------------------------------
   // Render
   // --------------------------------------------------
 
   return (
+
     <div className="min-h-screen py-8 px-4 relative pt-24">
 
       <div className="max-w-7xl mx-auto relative z-10">
+
+
+        {/* Heading */}
 
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-fade-in">
           Explore Events
         </h1>
 
-        {/* Search Bar */}
+
+        {/* Search */}
 
         <div className="mb-8">
 
@@ -318,7 +644,7 @@ const Events = ({ user }) => {
 
           <div className="bg-neutral-900 p-1 rounded-lg">
 
-            {tabs.map((tab) => (
+            {tabs.map(tab => (
 
               <button
                 key={tab.id}
@@ -341,7 +667,7 @@ const Events = ({ user }) => {
         </div>
 
 
-        {/* Events Grid */}
+        {/* Events */}
 
         {loading ? (
 
@@ -353,13 +679,13 @@ const Events = ({ user }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-            {filteredEvents.map((event) => {
+            {filteredEvents.map(event => {
 
-              // ----------------------------------------
-              // Calculate eligibility for this event
-              // ----------------------------------------
+              const eligible =
+                isUserEligible(event);
 
-              const eligible = isUserEligible(event);
+              const registered =
+                isUserRegistered(event._id);
 
               const hasDeadline =
                 new Date(
@@ -367,13 +693,9 @@ const Events = ({ user }) => {
                 ) > new Date();
 
               const hasCapacity =
-                event.attendees < event.capacity;
+                event.attendees <
+                event.capacity;
 
-              const canRegister =
-                user &&
-                eligible &&
-                hasDeadline &&
-                hasCapacity;
 
               return (
 
@@ -392,7 +714,8 @@ const Events = ({ user }) => {
 
                     <div className="space-y-4">
 
-                      {/* Title + Category */}
+
+                      {/* Title */}
 
                       <div className="flex justify-between items-start">
 
@@ -443,42 +766,55 @@ const Events = ({ user }) => {
                         {event.location && (
 
                           <div className="flex justify-between">
-                            <span>Location:</span>
+
+                            <span>
+                              Location:
+                            </span>
 
                             <span>
                               {event.location}
                             </span>
+
                           </div>
 
                         )}
 
 
                         <div className="flex justify-between">
-                          <span>Attendees:</span>
+
+                          <span>
+                            Attendees:
+                          </span>
 
                           <span>
                             {event.attendees}/
                             {event.capacity}
                           </span>
+
                         </div>
 
 
                         <div className="flex justify-between">
-                          <span>Deadline:</span>
+
+                          <span>
+                            Deadline:
+                          </span>
 
                           <span>
                             {new Date(
                               event.registrationDeadline
                             ).toLocaleDateString()}
                           </span>
+
                         </div>
 
                       </div>
 
 
-                      {/* Bottom section */}
+                      {/* Bottom */}
 
                       <div className="flex justify-between items-center pt-4">
+
 
                         {/* Event status */}
 
@@ -492,20 +828,18 @@ const Events = ({ user }) => {
                                 : 'bg-gray-600 text-white'
                           }`}
                         >
-                          {
-                            new Date(event.date) > new Date()
-                              ? 'Upcoming'
-                              : new Date(event.date).toDateString() ===
-                                new Date().toDateString()
-                                ? 'Today'
-                                : 'Past'
-                          }
+
+                          {new Date(event.date) > new Date()
+                            ? 'Upcoming'
+                            : new Date(event.date).toDateString() ===
+                              new Date().toDateString()
+                              ? 'Today'
+                              : 'Past'}
+
                         </span>
 
 
-                        {/* --------------------------------
-                            Registration section
-                        -------------------------------- */}
+                        {/* Registration */}
 
                         {user && (
 
@@ -515,9 +849,24 @@ const Events = ({ user }) => {
                             }
                           >
 
-                            {/* NOT ELIGIBLE */}
 
-                            {!eligible ? (
+                            {/* Already registered */}
+
+                            {registered ? (
+
+                              <button
+                                disabled
+                                className="bg-green-700/70 text-green-200 font-semibold px-6 py-2 rounded-lg cursor-not-allowed border border-green-500/30"
+                              >
+                                ✓ Registered
+                              </button>
+
+                            )
+
+
+                            /* Not eligible */
+
+                            : !eligible ? (
 
                               <div className="flex flex-col items-end gap-1">
 
@@ -534,7 +883,12 @@ const Events = ({ user }) => {
 
                               </div>
 
-                            ) : !hasDeadline ? (
+                            )
+
+
+                            /* Registration closed */
+
+                            : !hasDeadline ? (
 
                               <button
                                 disabled
@@ -543,7 +897,12 @@ const Events = ({ user }) => {
                                 Registration Closed
                               </button>
 
-                            ) : !hasCapacity ? (
+                            )
+
+
+                            /* Event full */
+
+                            : !hasCapacity ? (
 
                               <button
                                 disabled
@@ -552,7 +911,12 @@ const Events = ({ user }) => {
                                 Event Full
                               </button>
 
-                            ) : (
+                            )
+
+
+                            /* Register */
+
+                            : (
 
                               <button
                                 onClick={() =>
@@ -609,9 +973,7 @@ const Events = ({ user }) => {
       </div>
 
 
-      {/* ---------------------------------------------
-          Event Details Modal
-      --------------------------------------------- */}
+      {/* Event Details Modal */}
 
       {showModal && selectedEvent && (
 
@@ -653,7 +1015,6 @@ const Events = ({ user }) => {
                   ).toLocaleDateString()}
                 </div>
 
-
                 <div>
                   <strong>Time:</strong>{' '}
                   {new Date(
@@ -661,21 +1022,16 @@ const Events = ({ user }) => {
                   ).toLocaleTimeString()}
                 </div>
 
-
                 <div>
                   <strong>Location:</strong>{' '}
                   {selectedEvent.location ||
                     'TBD'}
                 </div>
 
-
                 <div>
                   <strong>Category:</strong>{' '}
                   {selectedEvent.category}
                 </div>
-
-
-                {/* Eligibility */}
 
                 <div className="col-span-2">
 
@@ -689,28 +1045,32 @@ const Events = ({ user }) => {
 
                 </div>
 
-
                 <div>
-                  <strong>Bookings:</strong>{' '}
+                  <strong>
+                    Bookings:
+                  </strong>{' '}
                   {selectedEvent.attendees}
                 </div>
 
-
                 <div>
-                  <strong>Free Slots:</strong>{' '}
+                  <strong>
+                    Free Slots:
+                  </strong>{' '}
                   {selectedEvent.capacity -
                     selectedEvent.attendees}
                 </div>
 
-
                 <div>
-                  <strong>Reserved Slots:</strong>{' '}
+                  <strong>
+                    Reserved Slots:
+                  </strong>{' '}
                   {selectedEvent.attendees}
                 </div>
 
-
                 <div>
-                  <strong>Capacity:</strong>{' '}
+                  <strong>
+                    Capacity:
+                  </strong>{' '}
                   {selectedEvent.capacity}
                 </div>
 

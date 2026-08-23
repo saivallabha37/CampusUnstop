@@ -45,9 +45,17 @@ const createEvent = async (req, res) => {
       location,
       imageUrl,
       tags,
-      organizerId
+      organizerId,
+      eligibleYears
     } = req.body;
 
+    const ALL_YEARS = [
+      '1st Year',
+      '2nd Year',
+      '3rd Year',
+      '4th Year'
+    ];
+    
     const event = new Event({
       title,
       date,
@@ -59,6 +67,14 @@ const createEvent = async (req, res) => {
       imageUrl,
       tags,
       organizerId,
+    
+      // If organizer didn't select any years,
+      // the event is open to everyone.
+      eligibleYears:
+        Array.isArray(eligibleYears) && eligibleYears.length > 0
+          ? eligibleYears
+          : ALL_YEARS,
+    
       attendees: 0
     });
 

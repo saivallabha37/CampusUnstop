@@ -7,6 +7,14 @@ import { useDialog } from '../contexts/DialogContext';
 const CreateEvent = ({ user }) => {
   const { showDialog } = useDialog();
   const navigate = useNavigate();
+
+  const ALL_YEARS = [
+    '1st Year',
+    '2nd Year',
+    '3rd Year',
+    '4th Year'
+  ];
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -20,18 +28,37 @@ const CreateEvent = ({ user }) => {
     tags: '',
     eligibleYears: []
   });
+
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(false);
 
   const categories = [
-    'Academic', 'Sports', 'Cultural', 'Technical', 'Social', 'Workshop', 'Seminar', 'Competition', 'Other'
+    'Academic',
+    'Sports',
+    'Cultural',
+    'Technical',
+    'Social',
+    'Workshop',
+    'Seminar',
+    'Competition',
+    'Other'
   ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleEligibilityChange = (year) => {
+    setFormData(prev => ({
+      ...prev,
+      eligibleYears: prev.eligibleYears.includes(year)
+        ? prev.eligibleYears.filter(item => item !== year)
+        : [...prev.eligibleYears, year]
     }));
   };
 
@@ -41,7 +68,18 @@ const CreateEvent = ({ user }) => {
 
     try {
       // Combine date and time
-      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
+      const eventDateTime = new Date(
+        `${formData.date}T${formData.time}`
+      );
+
+      /*
+       * If the organizer does not select any year,
+       * the event is considered open to all years.
+       */
+      const eligibleYears =
+        formData.eligibleYears.length > 0
+          ? formData.eligibleYears
+          : ALL_YEARS;
 
       const eventData = {
         title: formData.title,
@@ -50,26 +88,47 @@ const CreateEvent = ({ user }) => {
         location: formData.location,
         capacity: parseInt(formData.capacity),
         category: formData.category,
-        registrationDeadline: new Date(formData.registrationDeadline),
+
+        // NEW
+        eligibleYears,
+
+        registrationDeadline: new Date(
+          formData.registrationDeadline
+        ),
+
         imageUrl: formData.imageUrl || undefined,
-        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : undefined,
+
+        tags: formData.tags
+          ? formData.tags
+              .split(',')
+              .map(tag => tag.trim())
+              .filter(Boolean)
+          : undefined,
+
         organizerId: user.id
       };
 
+      console.log('Creating event:', eventData);
+
       await api.createEvent(eventData);
+
       await showDialog({
         type: 'success',
         title: 'Event Created',
         message: 'Event created successfully!'
       });
+
       window.location.href = '/events';
+
     } catch (error) {
       console.error('Error creating event:', error);
+
       await showDialog({
         type: 'error',
         title: 'Event Creation Failed',
         message: 'Failed to create event. Please try again.'
       });
+
     } finally {
       setLoading(false);
     }
@@ -83,7 +142,10 @@ const CreateEvent = ({ user }) => {
     <div className="min-h-screen py-8 px-4 relative pt-24">
 
       <div className="max-w-4xl mx-auto relative z-10">
-        <h1 className="text-4xl font-bold text-center mb-8">Create New Event</h1>
+
+        <h1 className="text-4xl font-bold text-center mb-8">
+          Create New Event
+        </h1>
 
         <div className="flex justify-end mb-4">
           <button
@@ -95,16 +157,23 @@ const CreateEvent = ({ user }) => {
         </div>
 
         {!preview ? (
+
           <SpotlightCard
             className="p-8 glass-dark border border-slate-700/50 rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)] animate-fade-in"
             spotlightColor="rgba(147, 51, 234, 0.3)"
           >
+
             <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* TITLE + CATEGORY */}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Event Title *
                   </label>
+
                   <input
                     type="text"
                     name="title"
@@ -120,6 +189,7 @@ const CreateEvent = ({ user }) => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Category *
                   </label>
+
                   <select
                     name="category"
                     value={formData.category}
@@ -127,21 +197,38 @@ const CreateEvent = ({ user }) => {
                     required
                     className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
-                    <option value="">Select category</option>
+                    <option value="">
+                      Select category
+                    </option>
+
                     {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
                     ))}
                   </select>
                 </div>
+
               </div>
 
+
+              {/* ELIGIBILITY */}
+
               <div>
+
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Eligibility *
+                  Eligibility <span className="text-gray-500">(Optional)</span>
                 </label>
-              
+
+                <p className="text-xs text-gray-400 mb-3">
+                  Select the years allowed to register. Leave all unchecked
+                  to allow students from all years.
+                </p>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {['1st Year', '2nd Year', '3rd Year', '4th Year'].map((year) => (
+
+                  {ALL_YEARS.map((year) => (
+
                     <label
                       key={year}
                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
@@ -150,41 +237,41 @@ const CreateEvent = ({ user }) => {
                           : 'bg-neutral-800 border-neutral-700 text-gray-400 hover:border-purple-500/50'
                       }`}
                     >
+
                       <input
                         type="checkbox"
                         checked={formData.eligibleYears.includes(year)}
-                        onChange={(e) => {
-                          const selectedYear = e.target.value;
-              
-                          setFormData(prev => ({
-                            ...prev,
-                            eligibleYears: e.target.checked
-                              ? [...prev.eligibleYears, selectedYear]
-                              : prev.eligibleYears.filter(
-                                  year => year !== selectedYear
-                                )
-                          }));
-                        }}
-                        value={year}
+                        onChange={() =>
+                          handleEligibilityChange(year)
+                        }
                         className="accent-purple-600"
                       />
-              
-                      <span>{year}</span>
+
+                      <span>
+                        {year}
+                      </span>
+
                     </label>
+
                   ))}
+
                 </div>
-              
-                {formData.eligibleYears.length === 0 && (
-                  <p className="text-sm text-red-400 mt-2">
-                    Please select at least one eligible year.
-                  </p>
-                )}
+
+                <p className="text-xs text-gray-500 mt-2">
+                  No selection = All Years
+                </p>
+
               </div>
 
+
+              {/* DESCRIPTION */}
+
               <div>
+
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Description *
                 </label>
+
                 <textarea
                   name="description"
                   value={formData.description}
@@ -194,13 +281,20 @@ const CreateEvent = ({ user }) => {
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Describe your event in detail"
                 />
+
               </div>
 
+
+              {/* DATE + TIME */}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                 <div>
+
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Date *
                   </label>
+
                   <input
                     type="date"
                     name="date"
@@ -210,12 +304,15 @@ const CreateEvent = ({ user }) => {
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+
                 </div>
 
                 <div>
+
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Time *
                   </label>
+
                   <input
                     type="time"
                     name="time"
@@ -224,14 +321,22 @@ const CreateEvent = ({ user }) => {
                     required
                     className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+
                 </div>
+
               </div>
 
+
+              {/* LOCATION + CAPACITY */}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                 <div>
+
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Location
                   </label>
+
                   <input
                     type="text"
                     name="location"
@@ -240,12 +345,15 @@ const CreateEvent = ({ user }) => {
                     className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Event location"
                   />
+
                 </div>
 
                 <div>
+
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Capacity *
                   </label>
+
                   <input
                     type="number"
                     name="capacity"
@@ -256,13 +364,20 @@ const CreateEvent = ({ user }) => {
                     className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Maximum attendees"
                   />
+
                 </div>
+
               </div>
 
+
+              {/* REGISTRATION DEADLINE */}
+
               <div>
+
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Registration Deadline *
                 </label>
+
                 <input
                   type="datetime-local"
                   name="registrationDeadline"
@@ -271,12 +386,18 @@ const CreateEvent = ({ user }) => {
                   required
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+
               </div>
 
+
+              {/* IMAGE */}
+
               <div>
+
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Image URL (optional)
                 </label>
+
                 <input
                   type="url"
                   name="imageUrl"
@@ -285,12 +406,18 @@ const CreateEvent = ({ user }) => {
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="https://example.com/image.jpg"
                 />
+
               </div>
 
+
+              {/* TAGS */}
+
               <div>
+
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Tags (optional)
                 </label>
+
                 <input
                   type="text"
                   name="tags"
@@ -299,9 +426,14 @@ const CreateEvent = ({ user }) => {
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="tag1, tag2, tag3"
                 />
+
               </div>
 
+
+              {/* BUTTONS */}
+
               <div className="flex justify-end space-x-4">
+
                 <button
                   type="button"
                   onClick={() => navigate('/events')}
@@ -309,6 +441,7 @@ const CreateEvent = ({ user }) => {
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -316,37 +449,103 @@ const CreateEvent = ({ user }) => {
                 >
                   {loading ? 'Creating...' : 'Create Event'}
                 </button>
+
               </div>
+
             </form>
+
           </SpotlightCard>
+
         ) : (
+
+          /* PREVIEW */
+
           <SpotlightCard
             className="p-8 glass-dark border border-slate-700/50 rounded-2xl shadow-[0_0_50px_rgba(59,130,246,0.15)] animate-fade-in"
             spotlightColor="rgba(59, 130, 246, 0.3)"
           >
+
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold">{formData.title || 'Event Title'}</h2>
-              <p className="text-gray-300">{formData.description || 'Event description will appear here.'}</p>
+
+              <h2 className="text-2xl font-bold">
+                {formData.title || 'Event Title'}
+              </h2>
+
+              <p className="text-gray-300">
+                {formData.description ||
+                  'Event description will appear here.'}
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div><strong>Date:</strong> {formData.date && formData.time ? `${formData.date} at ${formData.time}` : 'Not set'}</div>
-                <div><strong>Location:</strong> {formData.location || 'Not specified'}</div>
-                <div><strong>Category:</strong> {formData.category || 'Not selected'}</div>
-                <div><strong>Capacity:</strong> {formData.capacity || 'Not set'}</div>
-                <div><strong>Registration Deadline:</strong> {formData.registrationDeadline ? new Date(formData.registrationDeadline).toLocaleString() : 'Not set'}</div>
-                <div><strong>Tags:</strong> {formData.tags || 'None'}</div>
+
+                <div>
+                  <strong>Date:</strong>{' '}
+                  {formData.date && formData.time
+                    ? `${formData.date} at ${formData.time}`
+                    : 'Not set'}
+                </div>
+
+                <div>
+                  <strong>Location:</strong>{' '}
+                  {formData.location || 'Not specified'}
+                </div>
+
+                <div>
+                  <strong>Category:</strong>{' '}
+                  {formData.category || 'Not selected'}
+                </div>
+
+                <div>
+                  <strong>Capacity:</strong>{' '}
+                  {formData.capacity || 'Not set'}
+                </div>
+
+                {/* NEW */}
+                <div>
+                  <strong>Eligibility:</strong>{' '}
+                  {formData.eligibleYears.length > 0
+                    ? formData.eligibleYears.join(', ')
+                    : 'All Years'}
+                </div>
+
+                <div>
+                  <strong>Registration Deadline:</strong>{' '}
+                  {formData.registrationDeadline
+                    ? new Date(
+                        formData.registrationDeadline
+                      ).toLocaleString()
+                    : 'Not set'}
+                </div>
+
+                <div>
+                  <strong>Tags:</strong>{' '}
+                  {formData.tags || 'None'}
+                </div>
+
               </div>
 
               {formData.imageUrl && (
                 <div>
+
                   <strong>Image Preview:</strong>
-                  <img src={formData.imageUrl} alt="Event preview" className="mt-2 max-w-full h-48 object-cover rounded-lg" />
+
+                  <img
+                    src={formData.imageUrl}
+                    alt="Event preview"
+                    className="mt-2 max-w-full h-48 object-cover rounded-lg"
+                  />
+
                 </div>
               )}
+
             </div>
+
           </SpotlightCard>
+
         )}
+
       </div>
+
     </div>
   );
 };

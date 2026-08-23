@@ -10,6 +10,7 @@ const registerForEvent = async (req, res) => {
     // --------------------------------------------------
     // 1. Find event
     // --------------------------------------------------
+
     const event = await Event.findById(eventId);
 
     if (!event) {
@@ -18,9 +19,11 @@ const registerForEvent = async (req, res) => {
       });
     }
 
+
     // --------------------------------------------------
     // 2. Find registering user
     // --------------------------------------------------
+
     const registeringUser = await User.findById(userId);
 
     if (!registeringUser) {
@@ -29,17 +32,10 @@ const registerForEvent = async (req, res) => {
       });
     }
 
+
     // --------------------------------------------------
     // 3. CHECK ELIGIBILITY
     // --------------------------------------------------
-
-    /*
-      If eligibleYears is empty/missing, the event is
-      considered open to all years.
-
-      Otherwise, the user's year must be present
-      inside event.eligibleYears.
-    */
 
     const eligibleYears =
       Array.isArray(event.eligibleYears)
@@ -52,55 +48,121 @@ const registerForEvent = async (req, res) => {
 
     if (!isEligible) {
       return res.status(403).json({
+        code: 'NOT_ELIGIBLE',
         message: `You are not eligible for this event. This event is open to: ${eligibleYears.join(', ')}.`
       });
     }
 
-    // --------------------------------------------------
-    // 4. Check registration deadline
-    // --------------------------------------------------
-    if (new Date() >= event.registrationDeadline) {
-      return res.status(400).json({
-        message: 'Registration deadline has passed'
-      });
-    }
 
     // --------------------------------------------------
-    // 5. Check capacity
+    // 4. CHECK DUPLICATE REGISTRATION
     // --------------------------------------------------
-    if (event.attendees >= event.capacity) {
-      return res.status(400).json({
-        message: 'Event is full'
-      });
-    }
 
-    // --------------------------------------------------
-    // 6. Find event organizer
-    // --------------------------------------------------
-    const organizer = await User.findById(event.organizerId);
-
-    // --------------------------------------------------
-    // 7. Create booking
-    // --------------------------------------------------
-    const booking = new Booking({
+    const existingBooking = await Booking.findOne({
       userId,
       eventId
     });
 
-    await booking.save();
+    if (existingBooking) {
+      return res.status(409).json({
+        code: 'ALREADY_REGISTERED',
+        message: 'You are already registered for this event.'
+      });
+    }
+
 
     // --------------------------------------------------
-    // 8. Update event
+    // 5. Check registration deadline
     // --------------------------------------------------
+
+    if (new Date() >= event.registrationDeadline) {
+      return res.status(400).json({
+        code: 'REGISTRATION_CLOSED',
+        message: 'Registration deadline has passed.'
+      });
+    }
+
+
+    // --------------------------------------------------
+    // 6. Check capacity
+    // --------------------------------------------------
+
+    if (event.attendees >= event.capacity) {
+      return res.status(400).json({
+        code: 'EVENT_FULL',
+        message: 'Event is full.'
+      });
+    }
+
+
+    // --------------------------------------------------
+    // 7. Find organizer
+    // --------------------------------------------------
+
+    const organizer = await User.findById(
+      event.organizerId
+    );
+
+
+    // --------------------------------------------------
+    // 8. Create booking
+    // --------------------------------------------------
+
+    let booking;
+
+    try {
+
+      booking = new Booking({
+        userId,
+        eventId
+      });
+
+      await booking.save();
+
+    } catch (bookingError) {
+
+      // ----------------------------------------------
+      // MongoDB duplicate-key protection
+      // ----------------------------------------------
+      //
+      // This handles the situation where two
+      // registration requests arrive at almost
+      // exactly the same time.
+      //
+      // The unique index in Booking.js prevents
+      // both from being inserted.
+      //
+
+      if (bookingError.code === 11000) {
+
+        return res.status(409).json({
+          code: 'ALREADY_REGISTERED',
+          message: 'You are already registered for this event.'
+        });
+
+      }
+
+      throw bookingError;
+    }
+
+
+    // --------------------------------------------------
+    // 9. Update event
+    // --------------------------------------------------
+
     event.attendees += 1;
+
     event.participants.push(userId);
 
     await event.save();
 
+
     // --------------------------------------------------
-    // 9. Send notification
+    // 10. Send notification
     // --------------------------------------------------
+
     await sendNotification({
+
       type: 'EVENT_REGISTERED',
 
       event: {
@@ -124,29 +186,42 @@ const registerForEvent = async (req, res) => {
             email: organizer.email
           }
         : null
+
     });
 
+
     // --------------------------------------------------
-    // 10. Success response
+    // 11. Success response
     // --------------------------------------------------
-    res.status(201).json({
+
+    return res.status(201).json({
+      success: true,
+      code: 'REGISTERED',
       message: 'Registration successful',
       booking
     });
 
-  } catch (error) {
-    console.error('Registration error:', error);
 
-    res.status(500).json({
+  } catch (error) {
+
+    console.error(
+      'Registration error:',
+      error
+    );
+
+    return res.status(500).json({
       message: 'Server error',
       error: error.message
     });
+
   }
 };
 
 
 const getUserBookings = async (req, res) => {
+
   try {
+
     const bookings = await Booking.find({
       userId: req.params.userId
     }).populate('eventId');
@@ -154,11 +229,14 @@ const getUserBookings = async (req, res) => {
     res.json(bookings);
 
   } catch (error) {
+
     res.status(500).json({
       message: 'Server error',
       error: error.message
     });
+
   }
+
 };
 
 

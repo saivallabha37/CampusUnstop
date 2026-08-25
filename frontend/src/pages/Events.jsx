@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
+import EventFilters from '../components/EventFilters';
+import FilterChips from '../components/FilterChips';
+import SortDropdown from '../components/SortDropdown';
 import { useDialog } from '../contexts/DialogContext';
 
 const Events = ({ user }) => {
@@ -16,6 +19,10 @@ const Events = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
+  const [datePreset, setDatePreset] = useState('');
+  const [eligibleOnly, setEligibleOnly] = useState(false);
+  const [sortOrder, setSortOrder] = useState('nearest');
+  const [showFilters, setShowFilters] = useState(false);
 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -160,8 +167,14 @@ const Events = ({ user }) => {
     const now = new Date();
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const formatDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+    const endOfWeek = new Date(startOfToday);
+    endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    return events.filter((event) => {
+    const matchingEvents = events.filter((event) => {
       const eventDate = new Date(event.date);
       const hasValidDate = !Number.isNaN(eventDate.getTime());
       const category = typeof event.category === 'string' ? event.category : '';
@@ -184,6 +197,19 @@ const Events = ({ user }) => {
         }
       }
 
+      if (activeTab === 'past') {
+        if (!hasValidDate) {
+          return false;
+        }
+
+        const endDate = new Date(eventDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        if (endDate >= now) {
+          return false;
+        }
+      }
+
       if (normalizedSearch && !String(event.title || '').toLowerCase().includes(normalizedSearch)) {
         return false;
       }
@@ -202,15 +228,53 @@ const Events = ({ user }) => {
         return false;
       }
 
+      if (datePreset && (!hasValidDate || (
+        datePreset === 'today' && (eventDate < startOfToday || eventDate >= endOfToday)
+      ) || (
+        datePreset === 'tomorrow' && (eventDate < endOfToday || eventDate >= new Date(endOfToday.getTime() + 86400000))
+      ) || (
+        datePreset === 'week' && (eventDate < startOfToday || eventDate >= endOfWeek)
+      ) || (
+        datePreset === 'month' && (eventDate < startOfToday || eventDate >= endOfMonth)
+      ))) {
+        return false;
+      }
+
+      if (eligibleOnly && !isUserEligible(event)) {
+        return false;
+      }
+
       return true;
     });
-  }, [events, activeTab, searchTerm, categoryFilter, dateFilter]);
+
+    return [...matchingEvents].sort((firstEvent, secondEvent) => {
+      if (sortOrder === 'recent') {
+        const firstCreated = new Date(firstEvent.createdAt || 0).getTime();
+        const secondCreated = new Date(secondEvent.createdAt || 0).getTime();
+        return (Number.isNaN(secondCreated) ? 0 : secondCreated) - (Number.isNaN(firstCreated) ? 0 : firstCreated);
+      }
+
+      if (sortOrder === 'available') {
+        const firstAvailable = Number(firstEvent.capacity || 0) - Number(firstEvent.attendees || 0);
+        const secondAvailable = Number(secondEvent.capacity || 0) - Number(secondEvent.attendees || 0);
+        return secondAvailable - firstAvailable;
+      }
+
+      const firstDate = new Date(firstEvent.date).getTime();
+      const secondDate = new Date(secondEvent.date).getTime();
+      const safeFirstDate = Number.isNaN(firstDate) ? Number.MAX_SAFE_INTEGER : firstDate;
+      const safeSecondDate = Number.isNaN(secondDate) ? Number.MAX_SAFE_INTEGER : secondDate;
+      return sortOrder === 'latest' ? safeSecondDate - safeFirstDate : safeFirstDate - safeSecondDate;
+    });
+  }, [events, activeTab, searchTerm, categoryFilter, dateFilter, datePreset, eligibleOnly, sortOrder, isUserEligible]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setCategoryFilter('all');
     setDateFilter('');
+    setDatePreset('');
     setActiveTab('upcoming');
+    setEligibleOnly(false);
   };
 
 
@@ -562,19 +626,44 @@ const Events = ({ user }) => {
     },
 
     {
+      id: 'past',
+      label: 'Past Events'
+    },
+
+    {
       id: 'all',
       label: 'All Events'
     }
 
   ];
 
-  const categories = [
-    'Technical',
-    'Cultural',
-    'Sports',
-    'Workshop',
-    'Other'
+  const activeChips = [
+    ...(searchTerm.trim() ? [{ id: 'search', label: `Search: ${searchTerm.trim()}` }] : []),
+    ...(categoryFilter !== 'all' ? [{ id: 'category', label: categoryFilter }] : []),
+    ...(dateFilter ? [{ id: 'date', label: dateFilter }] : []),
+    ...(datePreset ? [{ id: 'datePreset', label: datePreset }] : []),
+    ...(activeTab !== 'all' ? [{ id: 'status', label: activeTab[0].toUpperCase() + activeTab.slice(1) }] : []),
+    ...(eligibleOnly ? [{ id: 'eligible', label: 'Eligible for me' }] : [])
   ];
+
+  const removeFilter = (filterId) => {
+    if (filterId === 'search') setSearchTerm('');
+    if (filterId === 'category') setCategoryFilter('all');
+    if (filterId === 'date') setDateFilter('');
+    if (filterId === 'datePreset') setDatePreset('');
+    if (filterId === 'status') setActiveTab('all');
+    if (filterId === 'eligible') setEligibleOnly(false);
+  };
+
+  const handleDatePresetChange = (preset) => {
+    setDatePreset(preset);
+    if (preset) setDateFilter('');
+  };
+
+  const handleCustomDateChange = (date) => {
+    setDateFilter(date);
+    if (date) setDatePreset('');
+  };
 
 
   // --------------------------------------------------
@@ -597,8 +686,8 @@ const Events = ({ user }) => {
 
         {/* Search and filters */}
 
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <label className="md:col-span-2">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row">
+          <label className="min-w-0 flex-1">
             <span className="sr-only">Search events by title</span>
             <input
               type="search"
@@ -608,31 +697,19 @@ const Events = ({ user }) => {
               className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </label>
-
-          <label>
-            <span className="sr-only">Filter by category</span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              className="flex-1 rounded-lg border border-blue-400/40 bg-blue-500/10 px-5 py-3 font-semibold text-blue-100 transition-colors hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 md:flex-none"
             >
-              <option value="all">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span className="sr-only">Filter by date</span>
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </label>
+              Filters{activeChips.length > 0 ? ` (${activeChips.length})` : ''}
+            </button>
+            <SortDropdown value={sortOrder} onChange={setSortOrder} />
+          </div>
         </div>
+
+        <FilterChips chips={activeChips} onRemove={removeFilter} onClear={clearFilters} />
 
 
         {/* Tabs */}
@@ -661,6 +738,15 @@ const Events = ({ user }) => {
 
           </div>
 
+        </div>
+
+        <div className="mb-6 flex items-center justify-between gap-3 text-sm text-gray-400">
+          <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
+          {activeChips.length > 0 && (
+            <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
+              Clear all
+            </button>
+          )}
         </div>
 
 
@@ -859,7 +945,7 @@ const Events = ({ user }) => {
 
                               <button
                                 disabled
-                                className="bg-green-700/70 text-green-200 font-semibold px-6 py-2 rounded-lg cursor-not-allowed border border-green-500/30"
+                                className="bg-indigo-700/70 text-indigo-100 font-semibold px-6 py-2 rounded-lg cursor-not-allowed border border-indigo-400/30"
                               >
                                 ✓ Registered
                               </button>
@@ -993,6 +1079,22 @@ const Events = ({ user }) => {
 
       </div>
 
+      <EventFilters
+        open={showFilters}
+        category={categoryFilter}
+        datePreset={datePreset}
+        customDate={dateFilter}
+        status={activeTab}
+        eligibleOnly={eligibleOnly}
+        user={user}
+        onCategoryChange={setCategoryFilter}
+        onDatePresetChange={handleDatePresetChange}
+        onCustomDateChange={handleCustomDateChange}
+        onStatusChange={setActiveTab}
+        onEligibleOnlyChange={setEligibleOnly}
+        onClear={clearFilters}
+        onClose={() => setShowFilters(false)}
+      />
 
       {/* Event Details Modal */}
 

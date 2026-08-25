@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
@@ -8,12 +8,14 @@ const Events = ({ user }) => {
   const { showDialog, showConfirmation } = useDialog();
 
   const [events, setEvents] = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState([]);
   const [userBookings, setUserBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   const [activeTab, setActiveTab] = useState('upcoming');
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -26,9 +28,12 @@ const Events = ({ user }) => {
     try {
       const data = await api.getEvents();
 
-      setEvents(data);
+      setEvents(Array.isArray(data) ? data : []);
+      setFetchError(!Array.isArray(data));
 
     } catch (error) {
+
+      setFetchError(true);
 
       console.error(
         'Error fetching events:',
@@ -151,97 +156,62 @@ const Events = ({ user }) => {
   );
 
 
-  // --------------------------------------------------
-  // Filter events
-  // --------------------------------------------------
-
-  const filterEvents = useCallback(() => {
-
-    let filtered = events;
-
+  const filteredEvents = useMemo(() => {
     const now = new Date();
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const formatDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+    return events.filter((event) => {
+      const eventDate = new Date(event.date);
+      const hasValidDate = !Number.isNaN(eventDate.getTime());
+      const category = typeof event.category === 'string' ? event.category : '';
+      const normalizedCategory = category.toLowerCase();
 
-    // Upcoming
-    if (activeTab === 'upcoming') {
+      if (activeTab === 'upcoming' && (!hasValidDate || eventDate <= now)) {
+        return false;
+      }
 
-      filtered = events.filter(
-        event =>
-          new Date(event.date) > now
-      );
+      if (activeTab === 'ongoing') {
+        if (!hasValidDate) {
+          return false;
+        }
 
-    }
+        const endDate = new Date(eventDate);
+        endDate.setHours(23, 59, 59, 999);
 
+        if (eventDate > now || endDate < now) {
+          return false;
+        }
+      }
 
-    // Ongoing
-    else if (activeTab === 'ongoing') {
+      if (normalizedSearch && !String(event.title || '').toLowerCase().includes(normalizedSearch)) {
+        return false;
+      }
 
-      filtered = events.filter(event => {
+      if (categoryFilter !== 'all') {
+        const matchesCategory = categoryFilter === 'Other'
+          ? !['technical', 'cultural', 'sports', 'workshop'].includes(normalizedCategory)
+          : normalizedCategory === categoryFilter.toLowerCase();
 
-        const eventDate =
-          new Date(event.date);
+        if (!matchesCategory) {
+          return false;
+        }
+      }
 
-        const endDate =
-          new Date(eventDate);
+      if (dateFilter && (!hasValidDate || formatDateKey(eventDate) !== dateFilter)) {
+        return false;
+      }
 
-        endDate.setHours(
-          23,
-          59,
-          59,
-          999
-        );
+      return true;
+    });
+  }, [events, activeTab, searchTerm, categoryFilter, dateFilter]);
 
-        return (
-          eventDate <= now &&
-          endDate >= now
-        );
-
-      });
-
-    }
-
-
-    // Search
-    if (searchTerm) {
-
-      filtered = filtered.filter(event => {
-
-        const title =
-          event.title?.toLowerCase() || '';
-
-        const description =
-          event.description?.toLowerCase() || '';
-
-        const category =
-          event.category?.toLowerCase() || '';
-
-        const search =
-          searchTerm.toLowerCase();
-
-        return (
-          title.includes(search) ||
-          description.includes(search) ||
-          category.includes(search)
-        );
-
-      });
-
-    }
-
-    setFilteredEvents(filtered);
-
-  }, [
-    events,
-    activeTab,
-    searchTerm
-  ]);
-
-
-  useEffect(() => {
-
-    filterEvents();
-
-  }, [filterEvents]);
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('all');
+    setDateFilter('');
+    setActiveTab('upcoming');
+  };
 
 
   // --------------------------------------------------
@@ -598,6 +568,14 @@ const Events = ({ user }) => {
 
   ];
 
+  const categories = [
+    'Technical',
+    'Cultural',
+    'Sports',
+    'Workshop',
+    'Other'
+  ];
+
 
   // --------------------------------------------------
   // Render
@@ -617,24 +595,43 @@ const Events = ({ user }) => {
         </h1>
 
 
-        {/* Search */}
+        {/* Search and filters */}
 
-        <div className="mb-8">
-
-          <div className="max-w-md mx-auto">
-
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <label className="md:col-span-2">
+            <span className="sr-only">Search events by title</span>
             <input
-              type="text"
-              placeholder="Search events by title, description, or category..."
+              type="search"
+              placeholder="Search events by title..."
               value={searchTerm}
-              onChange={(e) =>
-                setSearchTerm(e.target.value)
-              }
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </label>
 
-          </div>
+          <label>
+            <span className="sr-only">Filter by category</span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </label>
 
+          <label>
+            <span className="sr-only">Filter by date</span>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </label>
         </div>
 
 
@@ -673,6 +670,12 @@ const Events = ({ user }) => {
 
           <div className="text-center text-gray-400">
             Loading events...
+          </div>
+
+        ) : fetchError ? (
+
+          <div className="text-center text-red-300">
+            <p>We could not load events right now. Please try again later.</p>
           </div>
 
         ) : filteredEvents.length > 0 ? (
@@ -947,12 +950,12 @@ const Events = ({ user }) => {
 
           </div>
 
-        ) : (
+        ) : events.length === 0 ? (
 
           <div className="text-center text-gray-400">
 
             <p className="mb-4">
-              No events found matching your criteria.
+              No events are available yet.
             </p>
 
             {user && (
@@ -965,6 +968,24 @@ const Events = ({ user }) => {
               </Link>
 
             )}
+
+          </div>
+
+        ) : (
+
+          <div className="text-center text-gray-400">
+
+            <p className="mb-4">
+              No events match your current filters.
+            </p>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-300"
+            >
+              Clear Filters
+            </button>
 
           </div>
 

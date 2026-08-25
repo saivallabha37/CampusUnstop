@@ -945,7 +945,7 @@ const Events = ({ user }) => {
 
                               <button
                                 disabled
-                                className="bg-green-700/70 text-green-200 font-semibold px-6 py-2 rounded-lg cursor-not-allowed border border-green-500/30"
+                                className="bg-indigo-700/70 text-indigo-100 font-semibold px-6 py-2 rounded-lg cursor-not-allowed border border-indigo-400/30"
                               >
                                 ✓ Registered
                               </button>

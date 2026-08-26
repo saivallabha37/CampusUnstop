@@ -4,8 +4,10 @@ import { api } from '../services/api';
 import SpotlightCard from '../components/reactbits/SpotlightCard';
 import { useDialog } from '../contexts/DialogContext';
 
-const Profile = ({ user }) => {
+const Profile = ({ user, onUserUpdated }) => {
   const { showDialog, showConfirmation } = useDialog();
+  const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
+  const [profileUser, setProfileUser] = useState(user);
   const [activeTab, setActiveTab] = useState('profile');
   const [stats, setStats] = useState({
     eventsParticipated: 0,
@@ -24,6 +26,24 @@ const Profile = ({ user }) => {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [editingEvent, setEditingEvent] = useState(null);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const result = await api.getProfile();
+      if (result?.user) {
+        setProfileUser(result.user);
+        setEditData({
+          name: result.user.name || '',
+          phone: result.user.phone || '',
+          college: result.user.college || '',
+          year: result.user.year || '',
+          branch: result.user.branch || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }, []);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -64,6 +84,10 @@ const Profile = ({ user }) => {
     }
   }, [activeTab, fetchMyEvents, fetchUserStats]);
 
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditData(prev => ({
@@ -74,12 +98,25 @@ const Profile = ({ user }) => {
 
   const handleSaveProfile = async () => {
     try {
-      // In a real app, you'd call an API to update user profile
-      // For now, just update local state
+      const result = await api.updateProfile({
+        name: editData.name,
+        phone: editData.phone,
+        college: editData.college,
+        branch: editData.branch
+      });
+      const updatedUser = result?.user;
+
+      if (!updatedUser) {
+        throw new Error('Profile update returned no user');
+      }
+
+      setProfileUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      onUserUpdated?.(updatedUser);
       await showDialog({
         type: 'information',
-        title: 'Profile Update',
-        message: 'Profile update functionality would be implemented here'
+        title: 'Profile Updated',
+        message: 'Your profile has been updated successfully.'
       });
       setEditMode(false);
     } catch (error) {
@@ -87,18 +124,18 @@ const Profile = ({ user }) => {
       await showDialog({
         type: 'error',
         title: 'Profile Update Failed',
-        message: 'Failed to update profile'
+        message: error.message || 'Failed to update profile'
       });
     }
   };
 
   const handleCancelEdit = () => {
     setEditData({
-      name: user.name,
-      phone: user.phone,
-      college: user.college,
-      year: user.year,
-      branch: user.branch
+      name: profileUser.name || '',
+      phone: profileUser.phone || '',
+      college: profileUser.college || '',
+      year: profileUser.year || '',
+      branch: profileUser.branch || ''
     });
     setEditMode(false);
   };
@@ -257,30 +294,32 @@ const Profile = ({ user }) => {
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     ) : (
-                      <p className="text-white">{user.name}</p>
+                        <p className="text-white">{profileUser.name}</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
-                    <p className="text-white">{user.email}</p>
+                    <p className="text-white">{profileUser.email}</p>
                     <p className="text-xs text-gray-500">Email cannot be changed</p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Phone</label>
-                    {editMode ? (
+                  {editMode || hasValue(profileUser.phone) ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Phone</label>
+                      {editMode ? (
                       <input
                         type="tel"
                         name="phone"
-                        value={editData.phone}
+                        value={editData.phone || ''}
                         onChange={handleEditChange}
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
-                    ) : (
-                      <p className="text-white">{user.phone}</p>
-                    )}
-                  </div>
+                      ) : (
+                        <p className="text-white">{profileUser.phone}</p>
+                      )}
+                    </div>
+                  ) : null}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-1">College</label>
@@ -288,32 +327,21 @@ const Profile = ({ user }) => {
                       <input
                         type="text"
                         name="college"
-                        value={editData.college}
+                        value={editData.college || ''}
                         onChange={handleEditChange}
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     ) : (
-                      <p className="text-white">{user.college}</p>
+                      <p className="text-white">{profileUser.college}</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-1">Year</label>
-                    {editMode ? (
-                      <select
-                        name="year"
-                        value={editData.year}
-                        onChange={handleEditChange}
-                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="1st Year">1st Year</option>
-                        <option value="2nd Year">2nd Year</option>
-                        <option value="3rd Year">3rd Year</option>
-                        <option value="4th Year">4th Year</option>
-                      </select>
-                    ) : (
-                      <p className="text-white">{user.year}</p>
-                    )}
+                    <p className="text-white">
+                      {profileUser.year}
+                      <span className="ml-2 text-xs text-gray-500">Read-only</span>
+                    </p>
                   </div>
 
                   <div>
@@ -322,20 +350,25 @@ const Profile = ({ user }) => {
                       <input
                         type="text"
                         name="branch"
-                        value={editData.branch}
+                        value={editData.branch || ''}
                         onChange={handleEditChange}
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     ) : (
-                      <p className="text-white">{user.branch}</p>
+                      <p className="text-white">{profileUser.branch}</p>
                     )}
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Role</label>
-                  <p className="text-white capitalize">{user.role}</p>
-                </div>
+                {hasValue(profileUser.role) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Role</label>
+                    <p className="text-white capitalize">
+                      {profileUser.role}
+                      <span className="ml-2 text-xs text-gray-500">Read-only</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </SpotlightCard>
           </div>

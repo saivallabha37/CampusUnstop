@@ -32,6 +32,9 @@ const Events = ({ user }) => {
   // --------------------------------------------------
 
   const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    setFetchError(false);
+
     try {
       const data = await api.getEvents();
 
@@ -762,6 +765,13 @@ const Events = ({ user }) => {
 
           <div className="text-center text-red-300">
             <p>We could not load events right now. Please try again later.</p>
+            <button
+              type="button"
+              onClick={fetchEvents}
+              className="mt-4 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              Retry
+            </button>
           </div>
 
         ) : filteredEvents.length > 0 ? (

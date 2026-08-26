@@ -24,9 +24,40 @@ export const api = {
     return response.json();
   },
 
+  getProfile: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Unable to load profile');
+    }
+    return response.json();
+  },
+
+  updateProfile: async (profileData) => {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(profileData),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Unable to update profile');
+    }
+    return result;
+  },
+
   // Events
   getEvents: async () => {
     const response = await fetch(`${API_BASE_URL}/events`);
+    if (!response.ok) {
+      throw new Error('Unable to load events');
+    }
     return response.json();
   },
 

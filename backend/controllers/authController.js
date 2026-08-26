@@ -100,8 +100,49 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const updateUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const editableFields = ['name', 'phone', 'college', 'branch'];
+    const updates = Object.fromEntries(
+      editableFields
+        .filter((field) => req.body[field] !== undefined)
+        .map((field) => [field, typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field]])
+    );
+
+    if (updates.phone !== undefined && !/^[0-9+()\-\s]{7,20}$/.test(updates.phone)) {
+      return res.status(400).json({ message: 'Please enter a valid phone number.' });
+    }
+
+    for (const field of editableFields) {
+      if (updates[field] !== undefined) {
+        user[field] = updates[field];
+      }
+    }
+
+    await user.save();
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
+    res.json({ user: safeUser });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Please enter valid profile details.' });
+    }
+
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Unable to update profile right now.' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
-  getUserProfile
+  getUserProfile,
+  updateUserProfile
 };

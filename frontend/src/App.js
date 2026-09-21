@@ -62,6 +62,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home user={user} />} />
                   <Route path="/events" element={<Events user={user} />} />
+                  <Route path="/calendar" element={<Events user={user} />} />
                   <Route
                     path="/create-event"
                     element={user ? <CreateEvent user={user} /> : <Navigate to="/login" />}

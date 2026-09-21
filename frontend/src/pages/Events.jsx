@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import EventCard from '../components/EventCard';
+import EventCalendar from '../components/EventCalendar';
 import EventImage from '../components/EventImage';
 import EventFilters from '../components/EventFilters';
 import FilterChips from '../components/FilterChips';
@@ -10,6 +11,10 @@ import { useDialog } from '../contexts/DialogContext';
 
 const Events = ({ user }) => {
   const { showDialog, showConfirmation } = useDialog();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const isCalendarView = location.pathname === '/calendar';
 
   const [events, setEvents] = useState([]);
   const [userBookings, setUserBookings] = useState([]);
@@ -744,13 +749,36 @@ const Events = ({ user }) => {
 
         </div>
 
-        <div className="mb-6 flex items-center justify-between gap-3 text-sm text-gray-400">
-          <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
-          {activeChips.length > 0 && (
-            <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
-              Clear all
+        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
+            <button
+              onClick={() => navigate('/events')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${!isCalendarView ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-slate-800'}`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                List View
+              </div>
             </button>
-          )}
+            <button
+              onClick={() => navigate('/calendar')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${isCalendarView ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-slate-800'}`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                Calendar View
+              </div>
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-3 text-sm text-gray-400">
+            <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
+            {activeChips.length > 0 && (
+              <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
+                Clear all
+              </button>
+            )}
+          </div>
         </div>
 
 
@@ -777,7 +805,10 @@ const Events = ({ user }) => {
 
         ) : filteredEvents.length > 0 ? (
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          isCalendarView ? (
+            <EventCalendar events={filteredEvents} onEventClick={handleEventClick} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
             {filteredEvents.map(event => {
 
@@ -814,6 +845,7 @@ const Events = ({ user }) => {
             })}
 
           </div>
+          )
 
         ) : events.length === 0 ? (
 

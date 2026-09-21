@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
-import SpotlightCard from '../components/reactbits/SpotlightCard';
+import EventCard from '../components/EventCard';
+import EventImage from '../components/EventImage';
 import EventFilters from '../components/EventFilters';
 import FilterChips from '../components/FilterChips';
 import SortDropdown from '../components/SortDropdown';
@@ -797,249 +798,17 @@ const Events = ({ user }) => {
 
 
               return (
-
-                <div
+                <EventCard
                   key={event._id}
-                  onClick={() =>
-                    handleEventClick(event)
-                  }
-                  className="cursor-pointer"
-                >
-
-                  <SpotlightCard
-                    className="p-6 glass-dark rounded-2xl hover:border-blue-400/50 transition-all duration-500 transform hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(59,130,246,0.3)] h-full flex flex-col"
-                    spotlightColor="rgba(139, 92, 246, 0.25)"
-                  >
-
-                    <div className="space-y-4">
-
-
-                      {/* Title */}
-
-                      <div className="flex justify-between items-start">
-
-                        <h3 className="text-xl font-semibold text-white">
-                          {event.title}
-                        </h3>
-
-                        <span className="text-sm bg-blue-600 px-2 py-1 rounded-full">
-                          {event.category}
-                        </span>
-
-                      </div>
-
-
-                      {/* Description */}
-
-                      <p className="text-gray-300 line-clamp-3 my-4 flex-grow">
-                        {event.description}
-                      </p>
-
-
-                      {/* Event information */}
-
-                      <div className="space-y-3 text-sm text-gray-400 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-
-                        <div className="flex justify-between">
-                          <span>Date:</span>
-
-                          <span>
-                            {new Date(
-                              event.date
-                            ).toLocaleDateString()}
-                          </span>
-                        </div>
-
-
-                        <div className="flex justify-between">
-                          <span>Time:</span>
-
-                          <span>
-                            {new Date(
-                              event.date
-                            ).toLocaleTimeString()}
-                          </span>
-                        </div>
-
-
-                        {event.location && (
-
-                          <div className="flex justify-between">
-
-                            <span>
-                              Location:
-                            </span>
-
-                            <span>
-                              {event.location}
-                            </span>
-
-                          </div>
-
-                        )}
-
-
-                        <div className="flex justify-between">
-
-                          <span>
-                            Attendees:
-                          </span>
-
-                          <span>
-                            {event.attendees}/
-                            {event.capacity}
-                          </span>
-
-                        </div>
-
-
-                        <div className="flex justify-between">
-
-                          <span>
-                            Deadline:
-                          </span>
-
-                          <span>
-                            {new Date(
-                              event.registrationDeadline
-                            ).toLocaleDateString()}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-
-                      {/* Bottom */}
-
-                      <div className="flex justify-between items-center pt-4">
-
-
-                        {/* Event status */}
-
-                        <span
-                          className={`text-sm px-2 py-1 rounded-full ${
-                            new Date(event.date) > new Date()
-                              ? 'bg-green-600 text-white'
-                              : new Date(event.date).toDateString() ===
-                                new Date().toDateString()
-                                ? 'bg-yellow-600 text-white'
-                                : 'bg-gray-600 text-white'
-                          }`}
-                        >
-
-                          {new Date(event.date) > new Date()
-                            ? 'Upcoming'
-                            : new Date(event.date).toDateString() ===
-                              new Date().toDateString()
-                              ? 'Today'
-                              : 'Past'}
-
-                        </span>
-
-
-                        {/* Registration */}
-
-                        {user && (
-
-                          <div
-                            onClick={(e) =>
-                              e.stopPropagation()
-                            }
-                          >
-
-
-                            {/* Already registered */}
-
-                            {registered ? (
-
-                              <button
-                                disabled
-                                className="bg-indigo-700/70 text-indigo-100 font-semibold px-6 py-2 rounded-lg cursor-not-allowed border border-indigo-400/30"
-                              >
-                                ✓ Registered
-                              </button>
-
-                            )
-
-
-                            /* Not eligible */
-
-                            : !eligible ? (
-
-                              <div className="flex flex-col items-end gap-1">
-
-                                <button
-                                  disabled
-                                  className="bg-gray-700 text-gray-400 font-semibold px-6 py-2 rounded-lg cursor-not-allowed opacity-70"
-                                >
-                                  Not Eligible
-                                </button>
-
-                                <span className="text-xs text-red-400">
-                                  Your year is not eligible
-                                </span>
-
-                              </div>
-
-                            )
-
-
-                            /* Registration closed */
-
-                            : !hasDeadline ? (
-
-                              <button
-                                disabled
-                                className="bg-gray-700 text-gray-400 font-semibold px-6 py-2 rounded-lg cursor-not-allowed"
-                              >
-                                Registration Closed
-                              </button>
-
-                            )
-
-
-                            /* Event full */
-
-                            : !hasCapacity ? (
-
-                              <button
-                                disabled
-                                className="bg-gray-700 text-gray-400 font-semibold px-6 py-2 rounded-lg cursor-not-allowed"
-                              >
-                                Event Full
-                              </button>
-
-                            )
-
-
-                            /* Register */
-
-                            : (
-
-                              <button
-                                onClick={() =>
-                                  handleRegister(event)
-                                }
-                                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-6 py-2 rounded-lg transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.5)] transform hover:scale-105"
-                              >
-                                Register
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        )}
-
-                      </div>
-
-                    </div>
-
-                  </SpotlightCard>
-
-                </div>
-
+                  event={event}
+                  eligible={eligible}
+                  registered={registered}
+                  hasDeadline={hasDeadline}
+                  hasCapacity={hasCapacity}
+                  onClick={() => handleEventClick(event)}
+                  onRegister={handleRegister}
+                  user={user}
+                />
               );
 
             })}
@@ -1109,175 +878,167 @@ const Events = ({ user }) => {
       {/* Event Details Modal */}
 
       {showModal && selectedEvent && (
+        (() => {
+          const eligible = isUserEligible(selectedEvent);
+          const registered = isUserRegistered(selectedEvent._id);
+          const hasDeadline = new Date(selectedEvent.registrationDeadline) > new Date();
+          const hasCapacity = selectedEvent.attendees < selectedEvent.capacity;
 
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-
-          <div className="glass-dark rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto transform scale-100 transition-transform duration-300 border border-slate-700/50 shadow-[0_0_50px_rgba(139,92,246,0.15)]">
-
-            <div className="flex justify-between items-start mb-4">
-
-              <h2 className="text-2xl font-bold text-white">
-                {selectedEvent.title}
-              </h2>
-
-              <button
-                onClick={() =>
-                  setShowModal(false)
-                }
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
-
-            </div>
-
-
-            <div className="space-y-4 text-gray-300">
-
-              <p>
-                {selectedEvent.description}
-              </p>
-
-
-              <div className="grid grid-cols-2 gap-4">
-
-                <div>
-                  <strong>Date:</strong>{' '}
-                  {new Date(
-                    selectedEvent.date
-                  ).toLocaleDateString()}
+          return (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="glass-dark rounded-2xl p-0 max-w-2xl w-full max-h-[90vh] overflow-y-auto transform scale-100 transition-transform duration-300 border border-slate-700/50 shadow-[0_0_50px_rgba(139,92,246,0.15)] flex flex-col">
+                
+                {/* Modal Header with Image */}
+                <div className="relative w-full aspect-video bg-slate-900 shrink-0">
+                  <EventImage 
+                    src={selectedEvent.imageUrl} 
+                    alt={selectedEvent.title}
+                    className="w-full h-full object-cover rounded-t-2xl"
+                  />
+                  
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <span className="text-sm font-medium bg-blue-600/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-white shadow-lg border border-blue-400/30">
+                      {selectedEvent.category}
+                    </span>
+                    <button
+                      onClick={() => setShowModal(false)}
+                      className="bg-black/50 hover:bg-black/80 text-white rounded-full p-2 backdrop-blur-sm transition-colors border border-white/10"
+                      aria-label="Close"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-6 pt-12">
+                    <h2 className="text-3xl font-bold text-white drop-shadow-lg">
+                      {selectedEvent.title}
+                    </h2>
+                  </div>
                 </div>
 
-                <div>
-                  <strong>Time:</strong>{' '}
-                  {new Date(
-                    selectedEvent.date
-                  ).toLocaleTimeString()}
-                </div>
-
-                <div>
-                  <strong>Location:</strong>{' '}
-                  {selectedEvent.location ||
-                    'TBD'}
-                </div>
-
-                <div>
-                  <strong>Category:</strong>{' '}
-                  {selectedEvent.category}
-                </div>
-
-                <div className="col-span-2">
-
-                  <strong>
-                    Eligibility:
-                  </strong>{' '}
-
-                  {selectedEvent.eligibleYears?.length > 0
-                    ? selectedEvent.eligibleYears.join(', ')
-                    : 'All Years'}
-
-                </div>
-
-                <div>
-                  <strong>
-                    Bookings:
-                  </strong>{' '}
-                  {selectedEvent.attendees}
-                </div>
-
-                <div>
-                  <strong>
-                    Free Slots:
-                  </strong>{' '}
-                  {selectedEvent.capacity -
-                    selectedEvent.attendees}
-                </div>
-
-                <div>
-                  <strong>
-                    Reserved Slots:
-                  </strong>{' '}
-                  {selectedEvent.attendees}
-                </div>
-
-                <div>
-                  <strong>
-                    Capacity:
-                  </strong>{' '}
-                  {selectedEvent.capacity}
-                </div>
-
-              </div>
-
-
-              {selectedEvent.recommendations && (
-
-                <div>
-
-                  <strong>
-                    Recommendations:
-                  </strong>
-
-                  <p>
-                    {selectedEvent.recommendations}
-                  </p>
-
-                </div>
-
-              )}
-
-
-              {selectedEvent.prerequisites && (
-
-                <div>
-
-                  <strong>
-                    Prerequisites:
-                  </strong>
-
-                  <p>
-                    {selectedEvent.prerequisites}
-                  </p>
-
-                </div>
-
-              )}
-
-
-              {selectedEvent.participants &&
-                selectedEvent.participants.length > 0 && (
-
-                  <div>
-
-                    <strong>
-                      Participants:
-                    </strong>
-
-                    <ul className="list-disc list-inside">
-
-                      {selectedEvent.participants.map(
-                        (participant, index) => (
-
-                          <li key={index}>
-                            {participant.name ||
-                              participant}
-                          </li>
-
-                        )
-                      )}
-
-                    </ul>
-
+                <div className="p-8 space-y-6 text-gray-300">
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-lg leading-relaxed whitespace-pre-wrap">
+                      {selectedEvent.description}
+                    </p>
                   </div>
 
-                )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-800/30 p-6 rounded-xl border border-slate-700/50">
+                    <div className="space-y-4">
+                      <div>
+                        <strong className="block text-gray-400 text-sm mb-1">Date & Time</strong>
+                        <div className="text-white">
+                          {new Date(selectedEvent.date).toLocaleDateString()} at {new Date(selectedEvent.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      </div>
+                      
+                      {selectedEvent.location && (
+                        <div>
+                          <strong className="block text-gray-400 text-sm mb-1">Location</strong>
+                          <div className="text-white">{selectedEvent.location}</div>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <strong className="block text-gray-400 text-sm mb-1">Eligibility</strong>
+                        <div className="text-white">
+                          {selectedEvent.eligibleYears?.length > 0
+                            ? selectedEvent.eligibleYears.join(', ')
+                            : 'All Years'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <strong className="block text-gray-400 text-sm mb-1">Registration Deadline</strong>
+                        <div className="text-white">
+                          {new Date(selectedEvent.registrationDeadline).toLocaleDateString()}
+                        </div>
+                      </div>
 
+                      <div>
+                        <strong className="block text-gray-400 text-sm mb-1">Capacity Status</strong>
+                        <div className="text-white flex items-center justify-between">
+                          <span>{selectedEvent.attendees} / {selectedEvent.capacity} Reserved</span>
+                        </div>
+                        <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full" 
+                            style={{width: `${Math.min(100, (selectedEvent.attendees / selectedEvent.capacity) * 100)}%`}}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedEvent.recommendations && (
+                    <div className="bg-blue-900/20 border border-blue-500/20 p-4 rounded-xl">
+                      <strong className="block text-blue-400 mb-2">Recommendations</strong>
+                      <p className="text-blue-100">{selectedEvent.recommendations}</p>
+                    </div>
+                  )}
+
+                  {selectedEvent.prerequisites && (
+                    <div className="bg-purple-900/20 border border-purple-500/20 p-4 rounded-xl">
+                      <strong className="block text-purple-400 mb-2">Prerequisites</strong>
+                      <p className="text-purple-100">{selectedEvent.prerequisites}</p>
+                    </div>
+                  )}
+
+                  {selectedEvent.participants && selectedEvent.participants.length > 0 && (
+                    <div>
+                      <strong className="block text-gray-400 mb-2">Participants ({selectedEvent.participants.length})</strong>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEvent.participants.map((participant, index) => (
+                          <span key={index} className="bg-slate-800 text-gray-300 px-3 py-1 rounded-full text-sm border border-slate-700">
+                            {participant.name || participant}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Modal Footer / Registration Action */}
+                  <div className="mt-8 pt-6 border-t border-slate-700/50 flex justify-end">
+                    {user ? (
+                      registered ? (
+                        <button disabled className="bg-indigo-700/70 text-indigo-100 font-semibold px-8 py-3 rounded-xl cursor-not-allowed border border-indigo-400/30">
+                          ✓ Already Registered
+                        </button>
+                      ) : !eligible ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <button disabled className="bg-gray-700 text-gray-400 font-semibold px-8 py-3 rounded-xl cursor-not-allowed">
+                            Not Eligible
+                          </button>
+                          <span className="text-sm text-red-400">Your year is not eligible for this event</span>
+                        </div>
+                      ) : !hasDeadline ? (
+                        <button disabled className="bg-gray-700 text-gray-400 font-semibold px-8 py-3 rounded-xl cursor-not-allowed">
+                          Registration Closed
+                        </button>
+                      ) : !hasCapacity ? (
+                        <button disabled className="bg-gray-700 text-gray-400 font-semibold px-8 py-3 rounded-xl cursor-not-allowed">
+                          Event is Full
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleRegister(selectedEvent)}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.4)] transform hover:scale-105 text-lg"
+                        >
+                          Register for Event
+                        </button>
+                      )
+                    ) : (
+                      <button disabled className="bg-gray-800 text-gray-400 font-semibold px-8 py-3 rounded-xl border border-gray-700">
+                        Log in to Register
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-
-          </div>
-
-        </div>
-
+          );
+        })()
       )}
 
     </div>

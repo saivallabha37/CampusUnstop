@@ -680,106 +680,100 @@ const Events = ({ user }) => {
   // --------------------------------------------------
 
   return (
-
-    <div className="min-h-screen py-8 px-4 relative pt-24">
-
-      <div className="max-w-7xl mx-auto relative z-10">
+    <div className={`min-h-screen px-4 relative ${isCalendarView ? 'pt-24 pb-8' : 'py-8 pt-24'}`}>
+      <div className={`${isCalendarView ? 'max-w-[1500px]' : 'max-w-7xl'} mx-auto relative z-10`}>
 
 
         {/* Heading */}
-
-        <h1 className="text-5xl md:text-6xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-fade-in">
-          Explore Events
-        </h1>
-
-
-        {/* Search and filters */}
-
-        <div className="mb-4 flex flex-col gap-3 md:flex-row">
-          <label className="min-w-0 flex-1">
-            <span className="sr-only">Search events by title</span>
-            <input
-              type="search"
-              placeholder="Search events by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="flex-1 rounded-lg border border-blue-400/40 bg-blue-500/10 px-5 py-3 font-semibold text-blue-100 transition-colors hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 md:flex-none"
-            >
-              Filters{activeChips.length > 0 ? ` (${activeChips.length})` : ''}
-            </button>
-            <SortDropdown value={sortOrder} onChange={setSortOrder} />
-          </div>
-        </div>
-
-        <FilterChips chips={activeChips} onRemove={removeFilter} onClear={clearFilters} />
+        {!isCalendarView && (
+          <h1 className="text-5xl md:text-6xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-fade-in">
+            Explore Events
+          </h1>
+        )}
 
 
-        {/* Tabs */}
+        {!isCalendarView && (
+          <>
+            {/* Search and filters */}
+            <div className="mb-4 flex flex-col gap-3 md:flex-row">
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">Search events by title</span>
+                <input
+                  type="search"
+                  placeholder="Search events by title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(true)}
+                  className="flex-1 rounded-lg border border-blue-400/40 bg-blue-500/10 px-5 py-3 font-semibold text-blue-100 transition-colors hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 md:flex-none"
+                >
+                  Filters{activeChips.length > 0 ? ` (${activeChips.length})` : ''}
+                </button>
+                <SortDropdown value={sortOrder} onChange={setSortOrder} />
+              </div>
+            </div>
 
-        <div className="flex justify-center mb-8">
+            <FilterChips chips={activeChips} onRemove={removeFilter} onClear={clearFilters} />
 
-          <div className="bg-neutral-900 p-1 rounded-lg">
+            {/* Tabs */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-neutral-900 p-1 rounded-lg">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-6 py-2 rounded-md transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-neutral-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
-            {tabs.map(tab => (
-
+        {!isCalendarView && (
+          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
               <button
-                key={tab.id}
-                onClick={() =>
-                  setActiveTab(tab.id)
-                }
-                className={`px-6 py-2 rounded-md transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-neutral-800'
-                }`}
+                onClick={() => navigate('/events')}
+                className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white shadow-lg"
               >
-                {tab.label}
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  List View
+                </div>
               </button>
-
-            ))}
-
-          </div>
-
-        </div>
-
-        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
-            <button
-              onClick={() => navigate('/events')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${!isCalendarView ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-slate-800'}`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                List View
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/calendar')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${isCalendarView ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-slate-800'}`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                Calendar View
-              </div>
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-3 text-sm text-gray-400">
-            <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
-            {activeChips.length > 0 && (
-              <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
-                Clear all
+              <button
+                onClick={() => navigate('/calendar')}
+                className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-slate-800"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Calendar View
+                </div>
               </button>
-            )}
+            </div>
+            
+            <div className="flex items-center gap-3 text-sm text-gray-400">
+              <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
+              {activeChips.length > 0 && (
+                <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
 
         {/* Events */}
@@ -917,44 +911,46 @@ const Events = ({ user }) => {
           const hasCapacity = selectedEvent.attendees < selectedEvent.capacity;
 
           return (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-              <div className="glass-dark rounded-2xl p-0 max-w-2xl w-full max-h-[90vh] overflow-y-auto transform scale-100 transition-transform duration-300 border border-slate-700/50 shadow-[0_0_50px_rgba(139,92,246,0.15)] flex flex-col">
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6 animate-fade-in">
+              <div className="glass-dark rounded-2xl p-0 max-w-[600px] w-full max-h-[85vh] overflow-y-auto custom-scrollbar transform scale-100 transition-transform duration-300 border border-slate-700/50 shadow-[0_0_50px_rgba(139,92,246,0.15)] flex flex-col">
                 
                 {/* Modal Header with Image */}
-                <div className="relative w-full aspect-video bg-slate-900 shrink-0">
+                <div className="relative w-full h-48 sm:h-56 bg-slate-900 shrink-0">
                   <EventImage 
                     src={selectedEvent.imageUrl} 
                     alt={selectedEvent.title}
                     className="w-full h-full object-cover rounded-t-2xl"
                   />
                   
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <span className="text-sm font-medium bg-blue-600/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-white shadow-lg border border-blue-400/30">
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <span className="text-xs font-semibold bg-blue-600/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-white shadow-lg border border-blue-400/30">
                       {selectedEvent.category}
                     </span>
                     <button
                       onClick={() => setShowModal(false)}
-                      className="bg-black/50 hover:bg-black/80 text-white rounded-full p-2 backdrop-blur-sm transition-colors border border-white/10"
+                      className="bg-black/50 hover:bg-black/80 text-white rounded-full p-1.5 backdrop-blur-sm transition-colors border border-white/10 flex items-center justify-center w-8 h-8"
                       aria-label="Close"
                     >
-                      ✕
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-6 pt-12">
-                    <h2 className="text-3xl font-bold text-white drop-shadow-lg">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-5 pt-10">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg line-clamp-2">
                       {selectedEvent.title}
                     </h2>
                   </div>
                 </div>
 
-                <div className="p-8 space-y-6 text-gray-300">
+                <div className="p-5 sm:p-6 space-y-5 text-gray-300">
                   <div className="prose prose-invert max-w-none">
-                    <p className="text-lg leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
                       {selectedEvent.description}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-800/30 p-6 rounded-xl border border-slate-700/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-800/30 p-4 sm:p-5 rounded-xl border border-slate-700/50">
                     <div className="space-y-4">
                       <div>
                         <strong className="block text-gray-400 text-sm mb-1">Date & Time</strong>
@@ -1031,38 +1027,44 @@ const Events = ({ user }) => {
                   )}
                   
                   {/* Modal Footer / Registration Action */}
-                  <div className="mt-8 pt-6 border-t border-slate-700/50 flex justify-end">
+                  <div className="mt-6 pt-5 border-t border-slate-700/50 flex justify-end">
                     {user ? (
                       registered ? (
-                        <button disabled className="bg-indigo-700/70 text-indigo-100 font-semibold px-8 py-3 rounded-xl cursor-not-allowed border border-indigo-400/30">
+                        <button disabled className="bg-indigo-700/70 text-indigo-100 font-semibold px-6 py-2.5 rounded-xl cursor-not-allowed border border-indigo-400/30">
                           ✓ Already Registered
                         </button>
                       ) : !eligible ? (
                         <div className="flex flex-col items-end gap-1">
-                          <button disabled className="bg-gray-700 text-gray-400 font-semibold px-8 py-3 rounded-xl cursor-not-allowed">
+                          <button disabled className="bg-gray-700 text-gray-400 font-semibold px-6 py-2.5 rounded-xl cursor-not-allowed">
                             Not Eligible
                           </button>
                           <span className="text-sm text-red-400">Your year is not eligible for this event</span>
                         </div>
                       ) : !hasDeadline ? (
-                        <button disabled className="bg-gray-700 text-gray-400 font-semibold px-8 py-3 rounded-xl cursor-not-allowed">
+                        <button disabled className="bg-gray-700 text-gray-400 font-semibold px-6 py-2.5 rounded-xl cursor-not-allowed">
                           Registration Closed
                         </button>
                       ) : !hasCapacity ? (
-                        <button disabled className="bg-gray-700 text-gray-400 font-semibold px-8 py-3 rounded-xl cursor-not-allowed">
-                          Event is Full
+                        <button disabled className="bg-gray-700 text-gray-400 font-semibold px-6 py-2.5 rounded-xl cursor-not-allowed">
+                          Event Full
                         </button>
                       ) : (
                         <button
                           onClick={() => handleRegister(selectedEvent)}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.4)] transform hover:scale-105 text-lg"
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.4)] transform hover:scale-105"
                         >
                           Register for Event
                         </button>
                       )
                     ) : (
-                      <button disabled className="bg-gray-800 text-gray-400 font-semibold px-8 py-3 rounded-xl border border-gray-700">
-                        Log in to Register
+                      <button
+                        onClick={() => {
+                          setShowModal(false);
+                          // handle login redirect if needed
+                        }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors shadow-lg"
+                      >
+                        Login to Register
                       </button>
                     )}
                   </div>

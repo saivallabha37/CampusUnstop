@@ -92,6 +92,7 @@ const UpcomingEventCard = ({ event, onClick }) => {
 
 const EventCalendar = ({ events, onEventClick }) => {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -111,11 +112,25 @@ const EventCalendar = ({ events, onEventClick }) => {
     eventsByDate[dateStr].push(event);
   });
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevPeriod = () => {
+    if (viewMode === 'month') {
+      setCurrentDate(new Date(year, month - 1, 1));
+    } else {
+      setCurrentDate(new Date(year, month, currentDate.getDate() - 7));
+    }
+  };
+
+  const nextPeriod = () => {
+    if (viewMode === 'month') {
+      setCurrentDate(new Date(year, month + 1, 1));
+    } else {
+      setCurrentDate(new Date(year, month, currentDate.getDate() + 7));
+    }
+  };
+
   const goToToday = () => {
     const today = new Date();
-    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
     setSelectedDate(today);
   };
 
@@ -131,6 +146,27 @@ const EventCalendar = ({ events, onEventClick }) => {
   for (let d = 1; d <= remainingCells; d++) {
     calendarCells.push({ year: month === 11 ? year + 1 : year, month: month === 11 ? 0 : month + 1, date: d, isCurrentMonth: false });
   }
+
+  const getWeekCells = () => {
+    const cells = [];
+    const currentDay = currentDate.getDay(); // 0 (Sun) to 6 (Sat)
+    const sunday = new Date(currentDate);
+    sunday.setDate(currentDate.getDate() - currentDay);
+    
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(sunday);
+      d.setDate(sunday.getDate() + i);
+      cells.push({
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        date: d.getDate(),
+        isCurrentMonth: d.getMonth() === month
+      });
+    }
+    return cells;
+  };
+
+  const cellsToRender = viewMode === 'month' ? calendarCells : getWeekCells();
 
   const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
   const selectedDayEvents = eventsByDate[selectedDateStr] || [];
@@ -189,10 +225,10 @@ const EventCalendar = ({ events, onEventClick }) => {
                 Today
               </button>
               <div className="flex bg-[#1a1d2d] rounded-lg border border-white/5 overflow-hidden">
-                <button onClick={prevMonth} className="px-3 py-1.5 hover:bg-white/5 text-gray-400 hover:text-white transition-colors border-r border-white/5">
+                <button onClick={prevPeriod} className="px-3 py-1.5 hover:bg-white/5 text-gray-400 hover:text-white transition-colors border-r border-white/5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <button onClick={nextMonth} className="px-3 py-1.5 hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <button onClick={nextPeriod} className="px-3 py-1.5 hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                 </button>
               </div>
@@ -201,9 +237,18 @@ const EventCalendar = ({ events, onEventClick }) => {
               </h2>
             </div>
             <div className="hidden sm:flex bg-[#1a1d2d] p-1 rounded-lg border border-white/5">
-              <button className="px-4 py-1 text-sm font-medium bg-purple-600 text-white rounded-md shadow">Month</button>
-              <button className="px-4 py-1 text-sm font-medium text-gray-400 hover:text-white">Week</button>
-              <button className="px-4 py-1 text-sm font-medium text-gray-400 hover:text-white">List</button>
+              <button 
+                onClick={() => setViewMode('month')}
+                className={`px-4 py-1 text-sm font-medium rounded-md transition-colors ${viewMode === 'month' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+              >
+                Month
+              </button>
+              <button 
+                onClick={() => setViewMode('week')}
+                className={`px-4 py-1 text-sm font-medium rounded-md transition-colors ${viewMode === 'week' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+              >
+                Week
+              </button>
             </div>
           </div>
 
@@ -220,7 +265,7 @@ const EventCalendar = ({ events, onEventClick }) => {
 
             {/* Days Grid */}
             <div className="grid grid-cols-7">
-              {calendarCells.map((cell, index) => {
+              {cellsToRender.map((cell, index) => {
                 const dateStr = `${cell.year}-${String(cell.month + 1).padStart(2, '0')}-${String(cell.date).padStart(2, '0')}`;
                 const dayEvents = eventsByDate[dateStr] || [];
                 
@@ -228,20 +273,23 @@ const EventCalendar = ({ events, onEventClick }) => {
                 const isToday = today.getDate() === cell.date && today.getMonth() === cell.month && today.getFullYear() === cell.year;
                 const isSelected = selectedDate.getDate() === cell.date && selectedDate.getMonth() === cell.month && selectedDate.getFullYear() === cell.year;
 
+                const maxEvents = viewMode === 'month' ? 2 : 5;
+                const cellHeightClass = viewMode === 'month' ? 'h-[100px] md:h-[110px]' : 'min-h-[160px] h-auto sm:min-h-[220px]';
+
                 // Render selected cell entirely differently (as per screenshot)
                 if (isSelected) {
                   return (
                     <div 
                       key={`${dateStr}-${index}`}
-                      className="h-[100px] md:h-[110px] bg-purple-500/10 border border-purple-500 flex flex-col items-center justify-center p-2 cursor-default relative shadow-[inset_0_0_20px_rgba(168,85,247,0.15)]"
+                      className={`${cellHeightClass} bg-purple-500/10 border border-purple-500 flex flex-col items-center justify-center p-2 cursor-default relative shadow-[inset_0_0_20px_rgba(168,85,247,0.15)]`}
                     >
-                      <div className="w-9 h-9 rounded-full bg-purple-400 text-white flex items-center justify-center font-bold text-sm mb-1.5 shadow-lg">
+                      <div className="w-9 h-9 rounded-full bg-purple-400 text-white flex items-center justify-center font-bold text-sm mb-1.5 shadow-lg shrink-0">
                         {cell.date}
                       </div>
-                      <div className="text-[11px] font-semibold text-white mb-1.5">
+                      <div className="text-[11px] font-semibold text-white mb-1.5 shrink-0">
                         {dayEvents.length} events
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap justify-center overflow-hidden">
                         {dayEvents.slice(0, 4).map((e, i) => {
                           const dotColor = getCategoryColor(e.category).dot;
                           return <div key={i} className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></div>;
@@ -258,21 +306,21 @@ const EventCalendar = ({ events, onEventClick }) => {
                     key={`${dateStr}-${index}`}
                     onClick={() => {
                       setSelectedDate(new Date(cell.year, cell.month, cell.date));
-                      if (!cell.isCurrentMonth) {
+                      if (viewMode === 'month' && !cell.isCurrentMonth) {
                         setCurrentDate(new Date(cell.year, cell.month, 1));
                       }
                     }}
-                    className={`h-[100px] md:h-[110px] border-r border-b border-white/5 p-1.5 cursor-pointer hover:bg-white/[0.02] transition-colors flex flex-col relative
-                      ${!cell.isCurrentMonth ? 'bg-[#0a0c12] text-gray-600' : 'bg-transparent text-gray-300'}
+                    className={`${cellHeightClass} border-r border-b border-white/5 p-1.5 cursor-pointer hover:bg-white/[0.02] transition-colors flex flex-col relative
+                      ${viewMode === 'month' && !cell.isCurrentMonth ? 'bg-[#0a0c12] text-gray-600' : 'bg-transparent text-gray-300'}
                       ${(index + 1) % 7 === 0 ? 'border-r-0' : ''}
                     `}
                   >
-                    <div className={`text-xs font-medium mb-1 pl-1 ${isToday ? 'text-purple-400 font-bold' : (!cell.isCurrentMonth ? 'text-gray-600' : 'text-gray-400')}`}>
+                    <div className={`text-xs font-medium mb-1 pl-1 shrink-0 ${isToday ? 'text-purple-400 font-bold' : (viewMode === 'month' && !cell.isCurrentMonth ? 'text-gray-600' : 'text-gray-400')}`}>
                       {cell.date}
                     </div>
                     
                     <div className="flex flex-col gap-1 overflow-hidden flex-1">
-                      {dayEvents.slice(0, 2).map(event => {
+                      {dayEvents.slice(0, maxEvents).map(event => {
                         const color = getCategoryColor(event.category);
                         return (
                           <div
@@ -284,9 +332,9 @@ const EventCalendar = ({ events, onEventClick }) => {
                           </div>
                         );
                       })}
-                      {dayEvents.length > 2 && (
-                        <div className="text-[10px] text-gray-500 pl-1 font-medium mt-0.5">
-                          +{dayEvents.length - 2} more
+                      {dayEvents.length > maxEvents && (
+                        <div className="text-[10px] text-gray-500 pl-1 font-medium mt-0.5 shrink-0">
+                          +{dayEvents.length - maxEvents} more
                         </div>
                       )}
                     </div>
@@ -298,7 +346,7 @@ const EventCalendar = ({ events, onEventClick }) => {
         </div>
 
         {/* RIGHT: Selected Day Panel */}
-        <div className="w-full xl:w-[380px] shrink-0 flex flex-col bg-[#0f111a] border border-white/5 rounded-2xl overflow-hidden shadow-xl" style={{ maxHeight: 'calc(110px * 6 + 48px + 40px)' }}>
+        <div className="w-full xl:w-[380px] shrink-0 flex flex-col bg-[#0f111a] border border-white/5 rounded-2xl overflow-hidden shadow-xl" style={{ maxHeight: 'calc(110px * 6 + 48px + 40px)', minHeight: viewMode === 'week' ? '400px' : 'auto' }}>
           {/* Panel Header */}
           <div className="p-5 flex justify-between items-start border-b border-white/5 bg-[#141724]">
             <div>

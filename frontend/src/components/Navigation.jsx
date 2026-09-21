@@ -14,6 +14,7 @@ const Navigation = ({ user, onLogout }) => {
   const menuItems = [
     { name: 'Home', path: '/' },
     { name: 'Events', path: '/events' },
+    { name: 'Calendar', path: '/calendar' },
     { name: 'Create Event', path: '/create-event' },
     { name: 'Profile', path: '/profile' }
   ];

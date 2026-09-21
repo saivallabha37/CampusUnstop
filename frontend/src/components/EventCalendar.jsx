@@ -2,44 +2,54 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventImage from './EventImage';
 
+// Helper to assign consistent colors to categories/events
+const getCategoryColor = (category) => {
+  const colors = [
+    { bg: 'bg-blue-500/20', text: 'text-blue-300', dot: 'bg-blue-500', border: 'border-blue-500/20' },
+    { bg: 'bg-green-500/20', text: 'text-green-300', dot: 'bg-green-500', border: 'border-green-500/20' },
+    { bg: 'bg-pink-500/20', text: 'text-pink-300', dot: 'bg-pink-500', border: 'border-pink-500/20' },
+    { bg: 'bg-yellow-500/20', text: 'text-yellow-300', dot: 'bg-yellow-500', border: 'border-yellow-500/20' },
+    { bg: 'bg-purple-500/20', text: 'text-purple-300', dot: 'bg-purple-500', border: 'border-purple-500/20' }
+  ];
+  if (!category) return colors[0];
+  const charCode = category.charCodeAt(0) + category.length;
+  return colors[charCode % colors.length];
+};
+
 const CompactEventCard = ({ event, onClick }) => {
+  const color = getCategoryColor(event.category);
   return (
     <div 
       onClick={() => onClick(event)}
-      className="flex items-center gap-4 bg-[#11131f] hover:bg-[#1a1d2d] border border-white/5 rounded-xl p-3 cursor-pointer transition-all duration-300 group"
+      className="flex gap-3 bg-[#11131f] border border-white/5 rounded-xl p-3 hover:border-white/10 cursor-pointer group transition-colors"
     >
-      <div className="hidden sm:block w-20 h-16 rounded-lg overflow-hidden shrink-0">
-        <EventImage imageUrl={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
+      <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+        <EventImage imageUrl={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
-      <div className="flex-grow min-w-0 flex flex-col justify-center">
-        <h4 className="text-white font-semibold truncate text-sm mb-1">{event.title}</h4>
-        <div className="text-xs text-gray-400 flex items-center gap-2">
-          <span className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div className="flex-1 min-w-0">
+        <h4 className="text-white text-sm font-semibold truncate group-hover:text-purple-400 transition-colors">{event.title}</h4>
+        <div className="text-gray-400 text-xs flex items-center gap-1.5 mt-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="truncate">{new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+        {event.location && (
+          <div className="text-gray-400 text-xs flex items-center gap-1.5 mt-1">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-          {event.location && (
-            <>
-              <span className="text-gray-600">•</span>
-              <span className="flex items-center gap-1 truncate">
-                <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {event.location}
-              </span>
-            </>
-          )}
-        </div>
-        <div className="mt-1.5 flex gap-2">
-          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 truncate">
-            {event.category}
+            <span className="truncate">{event.location}</span>
+          </div>
+        )}
+        <div className="flex gap-2 mt-2">
+          <span className={`px-2 py-0.5 rounded text-[9px] font-medium border ${color.bg} ${color.text} ${color.border} truncate`}>
+            {event.category || 'General'}
           </span>
         </div>
       </div>
-      <div className="shrink-0 text-gray-600 group-hover:text-purple-400 transition-colors">
+      <div className="flex items-center text-gray-600 group-hover:text-purple-400 transition-colors">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
       </div>
     </div>
@@ -50,35 +60,31 @@ const UpcomingEventCard = ({ event, onClick }) => {
   return (
     <div 
       onClick={() => onClick(event)}
-      className="bg-[#11131f] hover:bg-[#1a1d2d] border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 group flex flex-col h-full"
+      className="flex gap-3 bg-[#11131f] border border-white/5 rounded-xl p-3 hover:border-white/10 cursor-pointer group transition-colors"
     >
-      <div className="h-32 w-full overflow-hidden relative">
-        <EventImage imageUrl={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md text-xs font-semibold bg-black/60 backdrop-blur-md text-white border border-white/10">
-          {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </div>
+      <div className="w-20 h-16 rounded-lg overflow-hidden shrink-0">
+        <EventImage imageUrl={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
-      <div className="p-4 flex flex-col flex-grow">
-        <h4 className="text-white font-bold text-base mb-2 line-clamp-2">{event.title}</h4>
-        <div className="mt-auto space-y-2">
-          {event.location && (
-            <div className="text-xs text-gray-400 flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="truncate">{event.location}</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-            <span className="px-2.5 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 truncate max-w-[120px]">
-              {event.category}
-            </span>
-            <div className="text-purple-400 group-hover:translate-x-1 transition-transform">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            </div>
-          </div>
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <h4 className="text-white text-sm font-bold truncate group-hover:text-purple-400 transition-colors">{event.title}</h4>
+        <div className="text-gray-400 text-[11px] flex items-center gap-1.5 mt-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="truncate">{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
         </div>
+        {event.location && (
+          <div className="text-gray-400 text-[11px] flex items-center gap-1.5 mt-1">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="truncate">{event.location}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center text-gray-600 group-hover:text-purple-400 transition-colors pr-1">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
       </div>
     </div>
   );
@@ -130,81 +136,90 @@ const EventCalendar = ({ events, onEventClick }) => {
   const selectedDayEvents = eventsByDate[selectedDateStr] || [];
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   // Compute upcoming events (next 3 future events across all dates)
   const now = new Date();
   const upcomingEvents = [...events]
     .filter(e => {
       const d = new Date(e.date);
-      return !Number.isNaN(d.getTime()) && d > now;
+      return !Number.isNaN(d.getTime()) && d >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 3);
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 pb-12">
       
       {/* 1. Calendar Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-white/5">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 mt-1">
-            <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl border border-purple-500/30 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Campus Events Calendar</h1>
-            <p className="text-gray-400 mt-1">Discover and explore events happening around campus</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Campus Events Calendar</h1>
+            <p className="text-gray-400 text-sm">Discover and explore events happening around campus</p>
           </div>
         </div>
         <button 
           onClick={() => navigate('/events')}
-          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-full font-medium transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] hover:shadow-[0_0_25px_rgba(147,51,234,0.5)] shrink-0"
+          className="flex items-center gap-2 border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 px-5 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
         >
           Go to Events
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
 
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Main Layout: 2 Columns on Desktop */}
+      <div className="flex flex-col xl:flex-row gap-6 items-start">
         
         {/* LEFT: Calendar controls and grid */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="w-full xl:flex-1 flex flex-col gap-4">
           
           {/* Calendar Controls */}
-          <div className="flex items-center justify-between bg-[#0f111a] border border-white/5 rounded-2xl p-4">
-            <button onClick={goToToday} className="px-5 py-2 text-sm font-medium bg-[#1a1d2d] hover:bg-[#25293d] text-white rounded-lg transition-colors border border-white/5">
-              Today
-            </button>
-            <div className="flex items-center gap-6">
-              <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={goToToday} 
+                className="px-4 py-1.5 text-sm font-medium bg-[#1a1d2d] hover:bg-[#25293d] text-purple-300 border border-purple-500/30 rounded-lg transition-colors"
+              >
+                Today
               </button>
-              <h2 className="text-xl font-bold text-white w-40 text-center">
+              <div className="flex bg-[#1a1d2d] rounded-lg border border-white/5 overflow-hidden">
+                <button onClick={prevMonth} className="px-3 py-1.5 hover:bg-white/5 text-gray-400 hover:text-white transition-colors border-r border-white/5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button onClick={nextMonth} className="px-3 py-1.5 hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
+              <h2 className="text-xl font-bold text-white ml-2">
                 {monthNames[month]} {year}
               </h2>
-              <button onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </button>
             </div>
-            <div className="hidden sm:block w-[72px]"></div> {/* Spacer for centering */}
+            <div className="hidden sm:flex bg-[#1a1d2d] p-1 rounded-lg border border-white/5">
+              <button className="px-4 py-1 text-sm font-medium bg-purple-600 text-white rounded-md shadow">Month</button>
+              <button className="px-4 py-1 text-sm font-medium text-gray-400 hover:text-white">Week</button>
+              <button className="px-4 py-1 text-sm font-medium text-gray-400 hover:text-white">List</button>
+            </div>
           </div>
 
           {/* Calendar Grid */}
           <div className="bg-[#0f111a] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
             {/* Day Headers */}
-            <div className="grid grid-cols-7 border-b border-white/5 bg-black/20">
+            <div className="grid grid-cols-7 border-b border-white/5 bg-[#141724]">
               {dayNames.map(day => (
-                <div key={day} className="py-4 text-center text-xs font-bold text-gray-500 tracking-widest">
+                <div key={day} className="py-3 text-center text-xs font-semibold text-gray-400">
                   {day}
                 </div>
               ))}
             </div>
 
             {/* Days Grid */}
-            <div className="grid grid-cols-7 grid-rows-6">
+            <div className="grid grid-cols-7">
               {calendarCells.map((cell, index) => {
                 const dateStr = `${cell.year}-${String(cell.month + 1).padStart(2, '0')}-${String(cell.date).padStart(2, '0')}`;
                 const dayEvents = eventsByDate[dateStr] || [];
@@ -213,70 +228,65 @@ const EventCalendar = ({ events, onEventClick }) => {
                 const isToday = today.getDate() === cell.date && today.getMonth() === cell.month && today.getFullYear() === cell.year;
                 const isSelected = selectedDate.getDate() === cell.date && selectedDate.getMonth() === cell.month && selectedDate.getFullYear() === cell.year;
 
+                // Render selected cell entirely differently (as per screenshot)
+                if (isSelected) {
+                  return (
+                    <div 
+                      key={`${dateStr}-${index}`}
+                      className="h-[100px] md:h-[110px] bg-purple-500/10 border border-purple-500 flex flex-col items-center justify-center p-2 cursor-default relative shadow-[inset_0_0_20px_rgba(168,85,247,0.15)]"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-purple-400 text-white flex items-center justify-center font-bold text-sm mb-1.5 shadow-lg">
+                        {cell.date}
+                      </div>
+                      <div className="text-[11px] font-semibold text-white mb-1.5">
+                        {dayEvents.length} events
+                      </div>
+                      <div className="flex gap-1">
+                        {dayEvents.slice(0, 4).map((e, i) => {
+                          const dotColor = getCategoryColor(e.category).dot;
+                          return <div key={i} className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></div>;
+                        })}
+                        {dayEvents.length > 4 && <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Render normal unselected cell
                 return (
                   <div 
-                    key={`${cell.year}-${cell.month}-${cell.date}-${index}`}
+                    key={`${dateStr}-${index}`}
                     onClick={() => {
                       setSelectedDate(new Date(cell.year, cell.month, cell.date));
                       if (!cell.isCurrentMonth) {
                         setCurrentDate(new Date(cell.year, cell.month, 1));
                       }
                     }}
-                    className={`min-h-[100px] md:min-h-[130px] p-2 border-r border-b border-white/5 cursor-pointer transition-colors relative flex flex-col
-                      ${!cell.isCurrentMonth ? 'bg-black/20 text-gray-600' : 'bg-transparent text-gray-300 hover:bg-white/[0.02]'}
-                      ${isSelected ? 'bg-purple-500/10 border-purple-500/30 shadow-[inset_0_0_0_1px_rgba(168,85,247,0.3)]' : ''}
+                    className={`h-[100px] md:h-[110px] border-r border-b border-white/5 p-1.5 cursor-pointer hover:bg-white/[0.02] transition-colors flex flex-col relative
+                      ${!cell.isCurrentMonth ? 'bg-[#0a0c12] text-gray-600' : 'bg-transparent text-gray-300'}
+                      ${(index + 1) % 7 === 0 ? 'border-r-0' : ''}
                     `}
                   >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full
-                        ${isToday ? 'bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.6)]' : ''}
-                        ${isSelected && !isToday ? 'text-purple-300 font-bold' : ''}
-                      `}>
-                        {cell.date}
-                      </span>
-                      
-                      {/* Mobile Indicator Dots */}
-                      <div className="xl:hidden flex gap-0.5 pt-1.5">
-                        {dayEvents.slice(0, 3).map((e, i) => (
-                          <div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
-                        ))}
-                        {dayEvents.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>}
-                      </div>
+                    <div className={`text-xs font-medium mb-1 pl-1 ${isToday ? 'text-purple-400 font-bold' : (!cell.isCurrentMonth ? 'text-gray-600' : 'text-gray-400')}`}>
+                      {cell.date}
                     </div>
-
-                    {/* Desktop Event Badges */}
-                    <div className="hidden xl:flex flex-col gap-1.5 overflow-hidden flex-grow">
-                      {dayEvents.slice(0, 3).map(event => {
-                        const isPast = new Date(event.date) < today;
+                    
+                    <div className="flex flex-col gap-1 overflow-hidden flex-1">
+                      {dayEvents.slice(0, 2).map(event => {
+                        const color = getCategoryColor(event.category);
                         return (
                           <div
                             key={event._id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedDate(new Date(cell.year, cell.month, cell.date));
-                              onEventClick(event);
-                            }}
-                            className={`text-xs px-2 py-1 rounded-md truncate transition-all border
-                              ${isPast 
-                                ? 'bg-[#1a1d2d] border-white/5 text-gray-500 hover:bg-[#25293d]' 
-                                : 'bg-purple-500/10 border-purple-500/20 text-purple-200 hover:bg-purple-500/20'}
-                            `}
+                            className={`flex items-center gap-1.5 px-1.5 py-1 rounded bg-[#1a1d2d] text-gray-300 text-[10px] truncate border border-white/5 hover:bg-white/10`}
                           >
-                            <span className="opacity-70 mr-1">{new Date(event.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(' ', '')}</span>
-                            <span className="font-medium">{event.title}</span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${color.dot} shrink-0`}></div>
+                            <span className="truncate">{event.title}</span>
                           </div>
                         );
                       })}
-                      {dayEvents.length > 3 && (
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedDate(new Date(cell.year, cell.month, cell.date));
-                            if (!cell.isCurrentMonth) setCurrentDate(new Date(cell.year, cell.month, 1));
-                          }}
-                          className="text-[11px] text-gray-400 font-medium py-0.5 px-1 hover:text-white hover:bg-white/5 rounded transition-colors w-fit cursor-pointer"
-                        >
-                          +{dayEvents.length - 3} more
+                      {dayEvents.length > 2 && (
+                        <div className="text-[10px] text-gray-500 pl-1 font-medium mt-0.5">
+                          +{dayEvents.length - 2} more
                         </div>
                       )}
                     </div>
@@ -288,76 +298,68 @@ const EventCalendar = ({ events, onEventClick }) => {
         </div>
 
         {/* RIGHT: Selected Day Panel */}
-        <div className="lg:col-span-4 flex flex-col h-full">
-          <div className="bg-[#0f111a] border border-white/5 rounded-2xl flex flex-col h-full shadow-xl overflow-hidden sticky top-24">
-            
-            {/* Panel Header */}
-            <div className="p-6 border-b border-white/5 bg-black/20">
-              <h3 className="text-gray-400 text-sm font-medium mb-1">Events on</h3>
-              <h2 className="text-2xl font-bold text-white mb-3">
-                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+        <div className="w-full xl:w-[380px] shrink-0 flex flex-col bg-[#0f111a] border border-white/5 rounded-2xl overflow-hidden shadow-xl" style={{ maxHeight: 'calc(110px * 6 + 48px + 40px)' }}>
+          {/* Panel Header */}
+          <div className="p-5 flex justify-between items-start border-b border-white/5 bg-[#141724]">
+            <div>
+              <div className="text-gray-400 text-sm mb-0.5">Events on</div>
+              <h2 className="text-lg font-bold text-white">
+                {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </h2>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm font-medium">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
-                {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'event' : 'events'}
-              </div>
             </div>
-
-            {/* Event List */}
-            <div className="p-4 flex-grow overflow-y-auto max-h-[600px] space-y-3 custom-scrollbar">
-              {selectedDayEvents.length > 0 ? (
-                selectedDayEvents.map(event => (
-                  <CompactEventCard key={event._id} event={event} onClick={onEventClick} />
-                ))
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-500 py-12">
-                  <svg className="w-12 h-12 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p>No events scheduled</p>
-                  <p className="text-sm mt-1">Select another day</p>
-                </div>
-              )}
+            <div className="bg-[#1a1d2d] border border-blue-500/30 text-blue-400 px-3 py-1 rounded-lg text-xs font-semibold">
+              {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'event' : 'events'}
             </div>
+          </div>
 
-            {/* View All Button */}
-            {selectedDayEvents.length > 0 && (
-              <div className="p-4 border-t border-white/5 bg-black/20">
-                <button 
-                  onClick={() => navigate('/events')}
-                  className="w-full py-3 rounded-xl bg-[#1a1d2d] hover:bg-[#25293d] text-white font-medium border border-white/5 transition-colors flex items-center justify-center gap-2"
-                >
-                  View All Events
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                </button>
+          {/* Event List */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+            {selectedDayEvents.length > 0 ? (
+              selectedDayEvents.map(event => (
+                <CompactEventCard key={event._id} event={event} onClick={onEventClick} />
+              ))
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-gray-500 py-12">
+                <svg className="w-12 h-12 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-sm">No events scheduled</p>
               </div>
             )}
+          </div>
+
+          {/* View All Button */}
+          <div className="p-4 border-t border-white/5 bg-[#141724]">
+            <button 
+              onClick={() => navigate('/events')}
+              className="w-full py-2.5 rounded-xl bg-[#1a1d2d] hover:bg-[#25293d] text-purple-300 text-sm font-medium border border-white/5 transition-colors flex items-center justify-between px-4"
+            >
+              <span>View All Events on {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
           </div>
         </div>
       </div>
 
       {/* 15. UPCOMING EVENTS SECTION */}
       {upcomingEvents.length > 0 && (
-        <div className="pt-8 mt-12 border-t border-white/5">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-white">Upcoming Events</h2>
+        <div className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h2 className="text-lg font-bold text-white">Upcoming Events</h2>
             </div>
             <button 
               onClick={() => navigate('/events')}
-              className="text-sm font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 group"
+              className="text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 px-4 py-1.5 rounded-full transition-colors"
             >
               View All
-              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {upcomingEvents.map(event => (
               <UpcomingEventCard key={event._id} event={event} onClick={onEventClick} />
             ))}
@@ -368,10 +370,10 @@ const EventCalendar = ({ events, onEventClick }) => {
       {/* Add custom scrollbar styling globally for this component scope */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+          width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.1);
+          background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.1);

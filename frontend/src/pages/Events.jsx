@@ -680,10 +680,8 @@ const Events = ({ user }) => {
   // --------------------------------------------------
 
   return (
-
-    <div className="min-h-screen py-8 px-4 relative pt-24">
-
-      <div className="max-w-7xl mx-auto relative z-10">
+    <div className={`min-h-screen px-4 relative ${isCalendarView ? 'pt-24 pb-8' : 'py-8 pt-24'}`}>
+      <div className={`${isCalendarView ? 'max-w-[1500px]' : 'max-w-7xl'} mx-auto relative z-10`}>
 
 
         {/* Heading */}

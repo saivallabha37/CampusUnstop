@@ -687,99 +687,95 @@ const Events = ({ user }) => {
 
 
         {/* Heading */}
-
-        <h1 className="text-5xl md:text-6xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-fade-in">
-          Explore Events
-        </h1>
-
-
-        {/* Search and filters */}
-
-        <div className="mb-4 flex flex-col gap-3 md:flex-row">
-          <label className="min-w-0 flex-1">
-            <span className="sr-only">Search events by title</span>
-            <input
-              type="search"
-              placeholder="Search events by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="flex-1 rounded-lg border border-blue-400/40 bg-blue-500/10 px-5 py-3 font-semibold text-blue-100 transition-colors hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 md:flex-none"
-            >
-              Filters{activeChips.length > 0 ? ` (${activeChips.length})` : ''}
-            </button>
-            <SortDropdown value={sortOrder} onChange={setSortOrder} />
-          </div>
-        </div>
-
-        <FilterChips chips={activeChips} onRemove={removeFilter} onClear={clearFilters} />
+        {!isCalendarView && (
+          <h1 className="text-5xl md:text-6xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-fade-in">
+            Explore Events
+          </h1>
+        )}
 
 
-        {/* Tabs */}
+        {!isCalendarView && (
+          <>
+            {/* Search and filters */}
+            <div className="mb-4 flex flex-col gap-3 md:flex-row">
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">Search events by title</span>
+                <input
+                  type="search"
+                  placeholder="Search events by title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(true)}
+                  className="flex-1 rounded-lg border border-blue-400/40 bg-blue-500/10 px-5 py-3 font-semibold text-blue-100 transition-colors hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 md:flex-none"
+                >
+                  Filters{activeChips.length > 0 ? ` (${activeChips.length})` : ''}
+                </button>
+                <SortDropdown value={sortOrder} onChange={setSortOrder} />
+              </div>
+            </div>
 
-        <div className="flex justify-center mb-8">
+            <FilterChips chips={activeChips} onRemove={removeFilter} onClear={clearFilters} />
 
-          <div className="bg-neutral-900 p-1 rounded-lg">
+            {/* Tabs */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-neutral-900 p-1 rounded-lg">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-6 py-2 rounded-md transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-neutral-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
-            {tabs.map(tab => (
-
+        {!isCalendarView && (
+          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
               <button
-                key={tab.id}
-                onClick={() =>
-                  setActiveTab(tab.id)
-                }
-                className={`px-6 py-2 rounded-md transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-neutral-800'
-                }`}
+                onClick={() => navigate('/events')}
+                className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white shadow-lg"
               >
-                {tab.label}
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  List View
+                </div>
               </button>
-
-            ))}
-
-          </div>
-
-        </div>
-
-        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
-            <button
-              onClick={() => navigate('/events')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${!isCalendarView ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-slate-800'}`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                List View
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/calendar')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${isCalendarView ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-slate-800'}`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                Calendar View
-              </div>
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-3 text-sm text-gray-400">
-            <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
-            {activeChips.length > 0 && (
-              <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
-                Clear all
+              <button
+                onClick={() => navigate('/calendar')}
+                className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-slate-800"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Calendar View
+                </div>
               </button>
-            )}
+            </div>
+            
+            <div className="flex items-center gap-3 text-sm text-gray-400">
+              <span>{filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found</span>
+              {activeChips.length > 0 && (
+                <button type="button" onClick={clearFilters} className="text-blue-300 underline underline-offset-4 hover:text-white">
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
 
         {/* Events */}

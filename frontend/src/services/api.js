@@ -1,34 +1,40 @@
-const API_BASE_URL = 'https://campusunstop.onrender.com/api';
+import { auth } from '../firebase';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+const getAuthHeader = async () => {
+  if (!auth.currentUser) return {};
+  try {
+    const token = await auth.currentUser.getIdToken();
+    return { Authorization: `Bearer ${token}` };
+  } catch (error) {
+    console.error('Error getting Firebase token:', error);
+    return {};
+  }
+};
 
 export const api = {
-  // Authentication
-  register: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  // Sync Profile with Firebase
+  syncUser: async (profileData = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeader()),
+    };
+    const response = await fetch(`${API_BASE_URL}/auth/sync`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
+      headers,
+      body: JSON.stringify(profileData),
     });
-    return response.json();
-  },
-
-  login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result.user;
   },
 
   getProfile: async () => {
     const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      headers: await getAuthHeader(),
     });
     if (!response.ok) {
       throw new Error('Unable to load profile');
@@ -41,7 +47,7 @@ export const api = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        ...(await getAuthHeader()),
       },
       body: JSON.stringify(profileData),
     });
@@ -77,6 +83,7 @@ export const api = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeader()),
       },
       body: JSON.stringify(eventData),
     });
@@ -86,6 +93,7 @@ export const api = {
   deleteEvent: async (eventId) => {
     const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
       method: 'DELETE',
+      headers: await getAuthHeader(),
     });
     return response.json();
   },
@@ -95,6 +103,7 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeader()),
       },
       body: JSON.stringify(eventData),
     });
@@ -103,7 +112,9 @@ export const api = {
 
   // Bookings
   getUserBookings: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/bookings/user/${userId}`);
+    const response = await fetch(`${API_BASE_URL}/bookings/user/${userId}`, {
+      headers: await getAuthHeader(),
+    });
     return response.json();
   },
 
@@ -112,6 +123,7 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeader()),
       },
       body: JSON.stringify({ userId, eventId }),
     });

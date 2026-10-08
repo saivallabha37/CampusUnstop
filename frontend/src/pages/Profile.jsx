@@ -111,7 +111,6 @@ const Profile = ({ user, onUserUpdated }) => {
       }
 
       setProfileUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
       onUserUpdated?.(updatedUser);
       await showDialog({
         type: 'information',

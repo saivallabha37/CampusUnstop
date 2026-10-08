@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DialogProvider } from './contexts/DialogContext';
 import Navigation from './components/Navigation';
@@ -9,38 +11,73 @@ import CreateEvent from './pages/CreateEvent';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import { api } from './services/api';
+import CompleteProfileModal from './components/CompleteProfileModal';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [pendingFirebaseUser, setPendingFirebaseUser] = useState(null);
 
   useEffect(() => {
-    // Check for existing authentication on app load
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        if (firebaseUser.emailVerified) {
+          try {
+            // Attempt to sync and fetch CampusUnstop profile
+            const profileDataStr = sessionStorage.getItem('pendingProfileData');
+            const profileData = profileDataStr ? JSON.parse(profileDataStr) : {};
 
-    if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        // Invalid stored data, clear it
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+            const campusUser = await api.syncUser(profileData);
+            setUser(campusUser);
+
+            // Clear pending data upon successful sync
+            sessionStorage.removeItem('pendingProfileData');
+          } catch (error) {
+            console.error('Failed to sync user profile:', error);
+            if (error.needsProfile) {
+              setPendingFirebaseUser(firebaseUser);
+              setNeedsProfile(true);
+            } else {
+              setUser(null);
+              auth.signOut();
+            }
+          }
+        } else {
+          // User exists but is unverified
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+        setNeedsProfile(false);
+        setPendingFirebaseUser(null);
       }
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = (userData) => {
-    setUser(userData);
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      setUser(null);
+      setNeedsProfile(false);
+      setPendingFirebaseUser(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
-  const handleRegister = (userData) => {
-    setUser(userData);
+  const handleProfileComplete = (campusUser) => {
+    setUser(campusUser);
+    setNeedsProfile(false);
+    setPendingFirebaseUser(null);
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const handleProfileCancel = () => {
+    auth.signOut();
+    setNeedsProfile(false);
+    setPendingFirebaseUser(null);
   };
 
   return (
@@ -59,6 +96,14 @@ function App() {
             <div className="relative z-10">
               <Navigation user={user} onLogout={handleLogout} />
               <main className="pt-16">
+                {needsProfile && pendingFirebaseUser && (
+                  <CompleteProfileModal
+                    firebaseUser={pendingFirebaseUser}
+                    onComplete={handleProfileComplete}
+                    onCancel={handleProfileCancel}
+                  />
+                )}
+
                 <Routes>
                   <Route path="/" element={<Home user={user} />} />
                   <Route path="/events" element={<Events user={user} />} />
@@ -73,11 +118,11 @@ function App() {
                   />
                   <Route
                     path="/login"
-                    element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />}
+                    element={!user ? <Login /> : <Navigate to="/" />}
                   />
                   <Route
                     path="/register"
-                    element={!user ? <Register onRegister={handleRegister} /> : <Navigate to="/" />}
+                    element={!user ? <Register /> : <Navigate to="/" />}
                   />
                 </Routes>
               </main>

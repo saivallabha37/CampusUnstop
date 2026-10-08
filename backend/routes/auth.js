@@ -1,18 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, getUserProfile, updateUserProfile } = require('../controllers/authController');
-const authMiddleware = require('../middleware/auth');
+const { syncUser, getUserProfile, updateUserProfile } = require('../controllers/authController');
+const { verifyFirebaseToken, requireCampusUser } = require('../middleware/auth');
 
-// POST /api/auth/register
-router.post('/register', registerUser);
-
-// POST /api/auth/login
-router.post('/login', loginUser);
+// POST /api/auth/sync (creates or links user via Firebase token)
+router.post('/sync', verifyFirebaseToken, syncUser);
 
 // GET /api/auth/profile (protected route)
-router.get('/profile', authMiddleware, getUserProfile);
+router.get('/profile', verifyFirebaseToken, requireCampusUser, getUserProfile);
 
 // PUT /api/auth/profile
-router.put('/profile', authMiddleware, updateUserProfile);
+router.put('/profile', verifyFirebaseToken, requireCampusUser, updateUserProfile);
 
 module.exports = router;

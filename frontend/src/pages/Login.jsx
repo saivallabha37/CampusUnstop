@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { useDialog } from '../contexts/DialogContext';
 
-const Login = ({ onLogin, onSwitchToRegister }) => {
+const Login = () => {
   const { showDialog } = useDialog();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -16,27 +18,38 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
     setLoading(true);
 
     try {
-      const result = await api.login(formData);
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      
+      // Reload user to ensure emailVerified status is up to date
+      await userCredential.user.reload();
+      
+      if (!userCredential.user.emailVerified) {
+        await auth.signOut();
+        await showDialog({
+          type: 'warning',
+          title: 'Email Not Verified',
+          message: 'Please check your email and verify your account before logging in.'
+        });
+        setLoading(false);
+        return;
+      }
 
-      if (result.token) {
-        // Store token in localStorage for persistence
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        onLogin(result.user);
+      // If email is verified, App.js onAuthStateChanged will handle the rest!
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        await showDialog({
+          type: 'error',
+          title: 'Login Failed',
+          message: 'Invalid email or password. If you had an account previously, please register again with your original email to securely migrate your account.'
+        });
       } else {
         await showDialog({
           type: 'error',
           title: 'Login Failed',
-          message: result.message || 'Login failed'
+          message: error.message || 'Login failed. Please try again.'
         });
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      await showDialog({
-        type: 'error',
-        title: 'Login Failed',
-        message: 'Login failed. Please try again.'
-      });
     } finally {
       setLoading(false);
     }
@@ -44,7 +57,6 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative pt-24">
-
       <div className="relative z-10 glass-dark rounded-2xl p-8 w-full max-w-md mx-auto shadow-[0_0_50px_rgba(59,130,246,0.15)] animate-fade-in">
         <div className="text-center mb-8">
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">Welcome Back</h2>

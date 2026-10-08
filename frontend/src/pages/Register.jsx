@@ -1,29 +1,30 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { useDialog } from '../contexts/DialogContext';
 
-const Register = ({ onRegister, onSwitchToLogin }) => {
+const Register = () => {
   const { showDialog } = useDialog();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    confirmPassword: '',
     phone: '',
-    college: 'Vasavi College of Engineering (VCE), Hyderabad',
+    college: '',
     year: '',
-    branch: ''
+    branch: '',
+    password: '',
+    confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (formData.password !== formData.confirmPassword) {
       await showDialog({
         type: 'warning',
-        title: 'Password Mismatch',
+        title: 'Validation Error',
         message: 'Passwords do not match'
       });
       return;
@@ -32,27 +33,46 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
     setLoading(true);
 
     try {
-      const result = await api.register(formData);
+      // 1. Temporarily save extra profile data (we can't sync it until email is verified)
+      sessionStorage.setItem('pendingProfileData', JSON.stringify({
+        name: formData.name,
+        phone: formData.phone,
+        college: formData.college,
+        year: formData.year,
+        branch: formData.branch
+      }));
 
-      if (result.token) {
-        // Store token in localStorage for persistence
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        onRegister(result.user);
+      // 2. Create user in Firebase
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      
+      // 3. Send email verification
+      await sendEmailVerification(userCredential.user);
+
+      // 4. Sign out to force login after verification
+      await signOut(auth);
+
+      await showDialog({
+        type: 'success',
+        title: 'Account Created',
+        message: 'Your account has been created! Please check your email to verify your address. You must verify before logging in.'
+      });
+
+      navigate('/login');
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        await showDialog({
+          type: 'error',
+          title: 'Registration Failed',
+          message: 'An account with this email already exists. Please log in or reset your password.'
+        });
       } else {
         await showDialog({
           type: 'error',
           title: 'Registration Failed',
-          message: result.message || 'Registration failed'
+          message: error.message || 'Registration failed. Please try again.'
         });
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      await showDialog({
-        type: 'error',
-        title: 'Registration Failed',
-        message: 'Registration failed. Please try again.'
-      });
     } finally {
       setLoading(false);
     }
@@ -60,14 +80,13 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative pt-24">
-
       <div className="relative z-10 glass-dark rounded-2xl p-8 w-full max-w-4xl mx-auto shadow-[0_0_50px_rgba(59,130,246,0.15)] animate-fade-in mt-16">
         <div className="text-center mb-8">
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">Join CampusUnstop</h2>
           <p className="text-gray-300">Create your account to start exploring events</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-8">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column - Personal Information */}
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-white mb-4 border-b border-slate-700/50 pb-2">Personal Information</h3>

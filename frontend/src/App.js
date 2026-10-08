@@ -12,10 +12,12 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { api } from './services/api';
+import CompleteProfileModal from './components/CompleteProfileModal';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [pendingFirebaseUser, setPendingFirebaseUser] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -25,16 +27,21 @@ function App() {
             // Attempt to sync and fetch CampusUnstop profile
             const profileDataStr = sessionStorage.getItem('pendingProfileData');
             const profileData = profileDataStr ? JSON.parse(profileDataStr) : {};
-            
+
             const campusUser = await api.syncUser(profileData);
             setUser(campusUser);
-            
+
             // Clear pending data upon successful sync
             sessionStorage.removeItem('pendingProfileData');
           } catch (error) {
             console.error('Failed to sync user profile:', error);
-            setUser(null);
-            auth.signOut();
+            if (error.needsProfile) {
+              setPendingFirebaseUser(firebaseUser);
+              setNeedsProfile(true);
+            } else {
+              setUser(null);
+              auth.signOut();
+            }
           }
         } else {
           // User exists but is unverified
@@ -42,8 +49,9 @@ function App() {
         }
       } else {
         setUser(null);
+        setNeedsProfile(false);
+        setPendingFirebaseUser(null);
       }
-      setAuthLoading(false);
     });
 
     return () => unsubscribe();
@@ -53,9 +61,23 @@ function App() {
     try {
       await auth.signOut();
       setUser(null);
+      setNeedsProfile(false);
+      setPendingFirebaseUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  const handleProfileComplete = (campusUser) => {
+    setUser(campusUser);
+    setNeedsProfile(false);
+    setPendingFirebaseUser(null);
+  };
+
+  const handleProfileCancel = () => {
+    auth.signOut();
+    setNeedsProfile(false);
+    setPendingFirebaseUser(null);
   };
 
   return (
@@ -74,6 +96,14 @@ function App() {
             <div className="relative z-10">
               <Navigation user={user} onLogout={handleLogout} />
               <main className="pt-16">
+                {needsProfile && pendingFirebaseUser && (
+                  <CompleteProfileModal
+                    firebaseUser={pendingFirebaseUser}
+                    onComplete={handleProfileComplete}
+                    onCancel={handleProfileCancel}
+                  />
+                )}
+
                 <Routes>
                   <Route path="/" element={<Home user={user} />} />
                   <Route path="/events" element={<Events user={user} />} />

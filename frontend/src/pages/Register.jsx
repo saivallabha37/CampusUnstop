@@ -104,6 +104,9 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative pt-24">
       <div className="relative z-10 glass-dark rounded-2xl p-8 w-full max-w-4xl mx-auto shadow-[0_0_50px_rgba(59,130,246,0.15)] animate-fade-in mt-16">
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-6">
+            <img src="/logo.png" alt="CampusUnstop Logo" className="h-20 w-auto object-contain" />
+          </div>
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">Join CampusUnstop</h2>
           <p className="text-gray-300">Create your account to start exploring events</p>
         </div>

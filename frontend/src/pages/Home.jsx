@@ -30,12 +30,12 @@ const Home = ({ user }) => {
   };
 
   return (
-    <div className="min-h-screen py-20 px-4 relative">
+    <div className="min-h-screen w-full relative overflow-hidden">
       <SplashCursor />
       <FloatingElements />
 
       {/* Hero Section */}
-      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-16">
+      <section className="relative z-10 flex flex-col items-center justify-center min-h-[90vh] px-4 pt-20">
         <div className="text-center max-w-5xl mx-auto space-y-8">
           <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-4 text-sm font-medium text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>

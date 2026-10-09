@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DialogProvider } from './contexts/DialogContext';
 import Navigation from './components/Navigation';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
@@ -84,7 +85,7 @@ function App() {
     <ThemeProvider>
       <DialogProvider>
         <Router>
-          <div className="min-h-screen bg-[#030014] text-white overflow-x-hidden relative transition-colors duration-300">
+          <div className="min-h-screen bg-[#030014] text-white overflow-x-hidden relative transition-colors duration-300 flex flex-col">
             {/* Premium Global Background */}
             <div className="fixed inset-0 z-0 pointer-events-none">
               <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
@@ -93,9 +94,9 @@ function App() {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10">
+            <div className="relative z-10 flex flex-col flex-grow">
               <Navigation user={user} onLogout={handleLogout} />
-              <main className="pt-16">
+              <main className="pt-16 flex-grow">
                 {needsProfile && pendingFirebaseUser && (
                   <CompleteProfileModal
                     firebaseUser={pendingFirebaseUser}
@@ -126,6 +127,7 @@ function App() {
                   />
                 </Routes>
               </main>
+              <Footer />
             </div>
           </div>
         </Router>
